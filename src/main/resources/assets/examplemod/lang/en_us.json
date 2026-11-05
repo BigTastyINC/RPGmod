@@ -1,0 +1,56 @@
+{
+  "item.examplemod.stats_book": "Stats Book",
+  "key.examplemod.stats": "Open Stats Menu",
+  "key.categories.examplemod": "RPG Mod",
+
+  "block.examplemod.silver_ore": "Silver Ore",
+  "block.examplemod.cobalt_ore": "Cobalt Ore",
+  "block.examplemod.mithril_ore": "Mithril Ore",
+  "block.examplemod.adamantium_ore": "Adamantium Ore",
+  "block.examplemod.orichalcum_ore": "Orichalcum Ore",
+
+  "item.examplemod.silver_ingot": "Silver Ingot",
+  "item.examplemod.cobalt_ingot": "Cobalt Ingot",
+  "item.examplemod.mithril_ingot": "Mithril Ingot",
+  "item.examplemod.adamantium_ingot": "Adamantium Ingot",
+  "item.examplemod.orichalcum_ingot": "Orichalcum Ingot",
+
+  "item.examplemod.silver_sword": "§fSilver Sword",
+  "item.examplemod.cobalt_sword": "§3Cobalt Sword",
+  "item.examplemod.mithril_sword": "§5Mithril Sword",
+  "item.examplemod.adamantium_sword": "§8Adamantium Sword",
+  "item.examplemod.orichalcum_sword": "§2Orichalcum Sword",
+
+  "item.examplemod.silver_axe": "§fSilver Axe",
+  "item.examplemod.cobalt_axe": "§3Cobalt Axe",
+  "item.examplemod.mithril_axe": "§5Mithril Axe",
+  "item.examplemod.adamantium_axe": "§8Adamantium Axe",
+  "item.examplemod.orichalcum_axe": "§2Orichalcum Axe",
+
+  "item.examplemod.silver_helmet": "§fSilver Helmet",
+  "item.examplemod.silver_chestplate": "§fSilver Chestplate",
+  "item.examplemod.silver_leggings": "§fSilver Leggings",
+  "item.examplemod.silver_boots": "§fSilver Boots",
+
+  "item.examplemod.cobalt_helmet": "§3Cobalt Helmet",
+  "item.examplemod.cobalt_chestplate": "§3Cobalt Chestplate",
+  "item.examplemod.cobalt_leggings": "§3Cobalt Leggings",
+  "item.examplemod.cobalt_boots": "§3Cobalt Boots",
+
+  "item.examplemod.mithril_helmet": "§5Mithril Helmet",
+  "item.examplemod.mithril_chestplate": "§5Mithril Chestplate",
+  "item.examplemod.mithril_leggings": "§5Mithril Leggings",
+  "item.examplemod.mithril_boots": "§5Mithril Boots",
+
+  "item.examplemod.adamantium_helmet": "§8Adamantium Helmet",
+  "item.examplemod.adamantium_chestplate": "§8Adamantium Chestplate",
+  "item.examplemod.adamantium_leggings": "§8Adamantium Leggings",
+  "item.examplemod.adamantium_boots": "§8Adamantium Boots",
+
+  "item.examplemod.orichalcum_helmet": "§2Orichalcum Helmet",
+  "item.examplemod.orichalcum_chestplate": "§2Orichalcum Chestplate",
+  "item.examplemod.orichalcum_leggings": "§2Orichalcum Leggings",
+  "item.examplemod.orichalcum_boots": "§2Orichalcum Boots",
+
+  "itemGroup.examplemod": "RPG Mod"
+}

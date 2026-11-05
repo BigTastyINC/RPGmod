@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XX",
+    "XS",
+    " S"
+  ],
+  "key": {
+    "X": { "item": "examplemod:adamantium_ingot" },
+    "S": { "item": "minecraft:stick" }
+  },
+  "result": { "item": "examplemod:adamantium_axe" }
+}

@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [ "X X", "XXX", "XXX" ],
+  "key": { "X": { "item": "examplemod:silver_ingot" } },
+  "result": { "item": "examplemod:silver_chestplate" }
+}

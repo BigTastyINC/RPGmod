@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [ "XXX", "X X", "X X" ],
+  "key": { "X": { "item": "examplemod:mithril_ingot" } },
+  "result": { "item": "examplemod:mithril_leggings" }
+}

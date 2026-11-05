@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "examplemod:block/mithril_ore" }
+  }
+}

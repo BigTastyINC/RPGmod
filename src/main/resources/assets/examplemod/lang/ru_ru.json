@@ -1,0 +1,56 @@
+{
+  "item.examplemod.stats_book": "Книга Характеристик",
+  "key.examplemod.stats": "Меню характеристик",
+  "key.categories.examplemod": "RPG Мод",
+
+  "block.examplemod.silver_ore": "Серебряная руда",
+  "block.examplemod.cobalt_ore": "Кобальтовая руда",
+  "block.examplemod.mithril_ore": "Мифриловая руда",
+  "block.examplemod.adamantium_ore": "Адамантиевая руда",
+  "block.examplemod.orichalcum_ore": "Орихалковая руда",
+
+  "item.examplemod.silver_ingot": "Серебряный слиток",
+  "item.examplemod.cobalt_ingot": "Кобальтовый слиток",
+  "item.examplemod.mithril_ingot": "Мифриловый слиток",
+  "item.examplemod.adamantium_ingot": "Адамантиевый слиток",
+  "item.examplemod.orichalcum_ingot": "Орихалковый слиток",
+
+  "item.examplemod.silver_sword": "§fСеребряный меч",
+  "item.examplemod.cobalt_sword": "§3Кобальтовый меч",
+  "item.examplemod.mithril_sword": "§5Мифриловый меч",
+  "item.examplemod.adamantium_sword": "§8Адамантиевый меч",
+  "item.examplemod.orichalcum_sword": "§2Орихалковый меч",
+
+  "item.examplemod.silver_axe": "§fСеребряный топор",
+  "item.examplemod.cobalt_axe": "§3Кобальтовый топор",
+  "item.examplemod.mithril_axe": "§5Мифриловый топор",
+  "item.examplemod.adamantium_axe": "§8Адамантиевый топор",
+  "item.examplemod.orichalcum_axe": "§2Орихалковый топор",
+
+  "item.examplemod.silver_helmet": "§fСеребряный шлем",
+  "item.examplemod.silver_chestplate": "§fСеребряный нагрудник",
+  "item.examplemod.silver_leggings": "§fСеребряные поножи",
+  "item.examplemod.silver_boots": "§fСеребряные ботинки",
+
+  "item.examplemod.cobalt_helmet": "§3Кобальтовый шлем",
+  "item.examplemod.cobalt_chestplate": "§3Кобальтовый нагрудник",
+  "item.examplemod.cobalt_leggings": "§3Кобальтовые поножи",
+  "item.examplemod.cobalt_boots": "§3Кобальтовые ботинки",
+
+  "item.examplemod.mithril_helmet": "§5Мифриловый шлем",
+  "item.examplemod.mithril_chestplate": "§5Мифриловый нагрудник",
+  "item.examplemod.mithril_leggings": "§5Мифриловые поножи",
+  "item.examplemod.mithril_boots": "§5Мифриловые ботинки",
+
+  "item.examplemod.adamantium_helmet": "§8Адамантиевый шлем",
+  "item.examplemod.adamantium_chestplate": "§8Адамантиевый нагрудник",
+  "item.examplemod.adamantium_leggings": "§8Адамантиевые поножи",
+  "item.examplemod.adamantium_boots": "§8Адамантиевые ботинки",
+
+  "item.examplemod.orichalcum_helmet": "§2Орихалковый шлем",
+  "item.examplemod.orichalcum_chestplate": "§2Орихалковый нагрудник",
+  "item.examplemod.orichalcum_leggings": "§2Орихалковые поножи",
+  "item.examplemod.orichalcum_boots": "§2Орихалковые ботинки",
+
+  "itemGroup.examplemod": "RPG Мод"
+}

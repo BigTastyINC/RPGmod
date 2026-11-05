@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:blasting",
+  "ingredient": {
+    "item": "examplemod:adamantium_ore"
+  },
+  "result": "examplemod:adamantium_ingot",
+  "experience": 1.0,
+  "cookingtime": 100
+}

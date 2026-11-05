@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [ "X X", "X X" ],
+  "key": { "X": { "item": "examplemod:cobalt_ingot" } },
+  "result": { "item": "examplemod:cobalt_boots" }
+}
