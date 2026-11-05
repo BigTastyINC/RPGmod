@@ -39,68 +39,59 @@ public class RpgHud {
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
 
-            // === ВЕРХНИЙ ЛЕВЫЙ УГОЛ (Уровень, Жизнь, Еда, Мана) ===
+            // === ВЕРХНИЙ ЛЕВЫЙ УГОЛ ===
             final int leftX = 10;
             final int startY = 10;
 
-            // 1. Текст уровня (слева сверху)
+            // 1. Уровень
             String levelText = "Уровень: " + data.getLevel();
             mc.font.drawShadow(ms, levelText, leftX, startY, 0xFFFF55);
 
-            // 2. Полоска Жизни
+            // 2. Жизнь
             int hp = (int) player.getHealth();
             int maxHp = (int) player.getMaxHealth();
             drawBar(ms, mc, leftX, startY + 12, 100, 10, (float)hp/maxHp, 0xFF555555, 0xFFCC0000, hp + " / " + maxHp);
 
-            // 3. Полоска Еды
-            int food = player.getFoodData().getFoodLevel() * 5;
-            drawBar(ms, mc, leftX, startY + 24, 100, 10, (float)food/100f, 0xFF555555, 0xFFFFAA00, food + " / 100");
+            // 3. СТАМИНА (Вместо еды!)
+            int stamina = data.getStamina();
+            int maxStamina = data.getMaxStamina();
+            drawBar(ms, mc, leftX, startY + 24, 100, 10, (float)stamina/maxStamina, 0xFF555555, 0xFFFFAA00, stamina + " / " + maxStamina);
 
-            // 4. Полоска Маны
+            // 4. Мана
             int mana = data.getMana();
             int maxMana = data.getMaxMana();
             drawBar(ms, mc, leftX, startY + 36, 100, 10, (float)mana/maxMana, 0xFF555555, 0xFF0000FF, mana + " / " + maxMana);
 
 
-            // === НИЗ ПО ЦЕНТРУ (Наша полоска Опыта с текстом) ===
+            // === НИЗ ПО ЦЕНТРУ (Полоска Опыта) ===
             int currentLevel = data.getLevel();
             int currentXp = data.getXp();
             int xpNeeded = currentLevel * 100;
             float progress = (float) currentXp / xpNeeded;
 
             int xpBarWidth = 182;
-            // ИЗМЕНЕНИЕ ЗДЕСЬ: Прижали полоску к хотбару (height - 32)
             int xpBarY = height - 32;
             int xpBarHeight = 10;
 
             String xpText = currentXp + " / " + xpNeeded;
             drawBar(ms, mc, centerX - (xpBarWidth / 2), xpBarY, xpBarWidth, xpBarHeight, progress, 0xFF555555, 0xFF00FF00, xpText);
 
-            // === ПРАВЫЙ НИЖНИЙ УГОЛ (Крупная цифра уровня) ===
+            // === ПРАВЫЙ НИЖНИЙ УГОЛ (Крупная цифра) ===
             String bigLevelText = "" + currentLevel;
             int levelWidth = mc.font.width(bigLevelText);
             int levelX = width - levelWidth - 10;
-            // Чуть поднял цифру, чтобы она не наезжала на новую позицию полоски, либо оставил как было
             int levelY = height - 20;
-
-            // Рисуем уровень крупным желтым шрифтом
             mc.font.drawShadow(ms, bigLevelText, levelX, levelY, 0xFFFF55);
         });
     }
 
     private static void drawBar(MatrixStack ms, Minecraft mc, int x, int y, int width, int height, float progress, int bgColor, int fillColor, String text) {
         progress = Math.max(0.0f, Math.min(1.0f, progress));
-
-        // Фон
         AbstractGui.fill(ms, x, y, x + width, y + height, bgColor);
-        // Заполнение
         int fillWidth = (int) (width * progress);
         AbstractGui.fill(ms, x, y, x + fillWidth, y + height, fillColor);
-
-        // Рисуем текст по центру полоски
         if (text != null && !text.isEmpty()) {
             int textWidth = mc.font.width(text);
-            // +1 пиксель по Y, чтобы текст был ровно по центру
             mc.font.drawShadow(ms, text, x + (width - textWidth) / 2f, y + 1, 0xFFFFFF);
         }
     }

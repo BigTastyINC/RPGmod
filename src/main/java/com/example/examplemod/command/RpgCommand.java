@@ -29,7 +29,8 @@ public class RpgCommand {
                                             data.addXp(amount);
                                             PlayerEventHandler.applyStats(player, data);
                                             player.sendMessage(new StringTextComponent("Добавлено " + amount + " опыта!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen()));
+                                            // В пакет добавлена data.getStamina()
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
                                     return 1;
@@ -45,7 +46,25 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addStatPoints(amount);
                                             player.sendMessage(new StringTextComponent("§aДобавлено " + amount + " очков!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen()));
+                                            // В пакет добавлена data.getStamina()
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                        });
+                                    }
+                                    return 1;
+                                })
+                        )
+                )
+                .then(Commands.literal("addcoins")
+                        .then(Commands.argument("copperAmount", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                    int amount = IntegerArgumentType.getInteger(context, "copperAmount");
+                                    if (player != null) {
+                                        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                                            data.addCoins(amount);
+                                            player.sendMessage(new StringTextComponent("§6Добавлено " + amount + " меди!"), player.getUUID());
+                                            // В пакет добавлена data.getStamina()
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
                                     return 1;
@@ -59,17 +78,14 @@ public class RpgCommand {
                                             ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
                                             int level = IntegerArgumentType.getInteger(context, "level");
                                             int rarityInt = IntegerArgumentType.getInteger(context, "rarity");
-
                                             if (player != null) {
                                                 ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
                                                 CompoundNBT nbt = sword.getOrCreateTag();
                                                 nbt.putInt("ItemLevel", level);
                                                 nbt.putInt("RarityLevel", rarityInt);
-
                                                 int baseStat = (int) (level * 0.5 * Rarity.values()[rarityInt].getMultiplier());
                                                 nbt.putInt("StatStrength", baseStat);
                                                 nbt.putInt("StatDexterity", baseStat);
-
                                                 player.inventory.add(sword);
                                                 player.sendMessage(new StringTextComponent("§6Выдан: Алмазный меч"), player.getUUID());
                                             }
@@ -85,18 +101,15 @@ public class RpgCommand {
                                             ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
                                             int level = IntegerArgumentType.getInteger(context, "level");
                                             int rarityInt = IntegerArgumentType.getInteger(context, "rarity");
-
                                             if (player != null) {
                                                 ItemStack armor = new ItemStack(Items.DIAMOND_CHESTPLATE);
                                                 CompoundNBT nbt = armor.getOrCreateTag();
                                                 nbt.putInt("ItemLevel", level);
                                                 nbt.putInt("RarityLevel", rarityInt);
-
                                                 int baseStat = (int) (level * 0.5 * Rarity.values()[rarityInt].getMultiplier());
                                                 nbt.putInt("StatStrength", baseStat / 2);
                                                 nbt.putInt("StatDexterity", baseStat / 2);
                                                 nbt.putInt("StatVitality", baseStat);
-
                                                 player.inventory.add(armor);
                                                 player.sendMessage(new StringTextComponent("§6Выдан: Алмазный нагрудник"), player.getUUID());
                                             }

@@ -13,13 +13,13 @@ import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -34,17 +34,6 @@ public class PlayerEventHandler {
     private static final UUID DAMAGE_MODIFIER_ID = UUID.fromString("a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d");
     private static final UUID ATTACK_SPEED_MODIFIER_ID = UUID.fromString("b1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d");
 
-    private static String getMetalTypeFromItem(Item item) {
-        if (item.getRegistryName() == null) return null;
-        String name = item.getRegistryName().getPath();
-        if (name.startsWith("silver")) return "silver";
-        if (name.startsWith("cobalt")) return "cobalt";
-        if (name.startsWith("mithril")) return "mithril";
-        if (name.startsWith("adamantium")) return "adamantium";
-        if (name.startsWith("orichalcum")) return "orichalcum";
-        return null;
-    }
-
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof PlayerEntity) {
@@ -54,16 +43,31 @@ public class PlayerEventHandler {
         }
     }
 
+    // --- Трата стамины при ударе ---
+    @SubscribeEvent
+    public static void onPlayerAttack(AttackEntityEvent event) {
+        PlayerEntity player = event.getPlayer();
+        if (!player.level.isClientSide) {
+            player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                int staminaCost = 15;
+
+                if (data.getStamina() >= staminaCost) {
+                    data.setStamina(data.getStamina() - staminaCost);
+                    data.setStaminaRegenDelay(40); // Задержка регенерации 2 секунды
+                    syncData(player, data);
+                } else {
+                    event.setCanceled(true);
+                    player.displayClientMessage(new StringTextComponent("§cНедостаточно стамины!"), true);
+                }
+            });
+        }
+    }
+
     @SubscribeEvent
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (event.getPlayer().level.isClientSide) return;
         PlayerEntity player = event.getPlayer();
         ItemStack craftedItem = event.getCrafting();
-
-        String metal = getMetalTypeFromItem(craftedItem.getItem());
-        if (metal != null) {
-            craftedItem.getOrCreateTag().putString("MetalType", metal);
-        }
 
         if (ItemStatHelper.isGear(craftedItem)) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
@@ -77,21 +81,55 @@ public class PlayerEventHandler {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.level.isClientSide) return;
 
-        if (event.player.tickCount % 20 == 0) {
-            event.player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                boolean changed = false;
+        PlayerEntity player = event.player;
+
+        // Отключаем голод (держим на уровне 19, чтобы можно было есть)
+        if (player.getFoodData().getFoodLevel() < 19) {
+            player.getFoodData().setFoodLevel(19);
+            player.getFoodData().setSaturation(0);
+        }
+
+        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+            boolean changed = false;
+
+            // ВСЕ РЕГЕНЕРАЦИИ ПРОИСХОДЯТ РАЗ В СЕКУНДУ (20 тиков)
+            if (player.tickCount % 20 == 0) {
+
+                // Логика регенерации стамины
+                if (data.getStaminaRegenDelay() > 0) {
+                    data.setStaminaRegenDelay(data.getStaminaRegenDelay() - 20);
+                    if (data.getStaminaRegenDelay() < 0) {
+                        data.setStaminaRegenDelay(0);
+                    }
+                } else if (data.getStamina() < data.getMaxStamina()) {
+                    data.setStamina(data.getStamina() + 20);
+                    changed = true;
+                }
+
+                // Регенерация маны
                 if (data.getMana() < data.getMaxMana()) {
                     data.setMana(data.getMana() + 1 + data.getManaRegen());
                     changed = true;
                 }
-                applyStats(event.player, data);
-                checkInventoryForGear(event.player, data);
 
-                if (changed) {
-                    syncData(event.player, data);
+                // Регенерация здоровья
+                if (player.getHealth() < player.getMaxHealth() && player.getHealth() > 0) {
+                    if (data.getHealthRegen() > 0) {
+                        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Делим на 3, чтобы не было бессмертия ---
+                        float healAmount = data.getHealthRegen() / 3.0F;
+                        player.heal(healAmount);
+                        changed = true;
+                    }
                 }
-            });
-        }
+
+                applyStats(player, data);
+                checkInventoryForGear(player, data);
+            }
+
+            if (changed) {
+                syncData(player, data);
+            }
+        });
     }
 
     private static void checkInventoryForGear(PlayerEntity player, IPlayerLevel data) {
@@ -100,10 +138,6 @@ public class PlayerEventHandler {
         for (int i = 0; i < player.inventory.getContainerSize(); i++) {
             ItemStack stack = player.inventory.getItem(i);
             if (ItemStatHelper.isGear(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
-                String metal = getMetalTypeFromItem(stack.getItem());
-                if (metal != null) {
-                    stack.getOrCreateTag().putString("MetalType", metal);
-                }
                 ItemStatHelper.generateStats(stack, data.getLevel());
                 ((ServerPlayerEntity) player).containerMenu.broadcastChanges();
             }
@@ -126,6 +160,10 @@ public class PlayerEventHandler {
                     newData.setMana(oldData.getMana());
                     newData.setHealthRegen(oldData.getHealthRegen());
                     newData.setManaRegen(oldData.getManaRegen());
+                    newData.setStamina(oldData.getStamina());
+                    newData.setCopper(oldData.getCopper());
+                    newData.setSilver(oldData.getSilver());
+                    newData.setGold(oldData.getGold());
                     applyStats(event.getPlayer(), newData);
                 });
             });
@@ -232,7 +270,7 @@ public class PlayerEventHandler {
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
                     new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                             data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(),
-                            data.getHealthRegen(), data.getManaRegen())
+                            data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
             );
         }
     }

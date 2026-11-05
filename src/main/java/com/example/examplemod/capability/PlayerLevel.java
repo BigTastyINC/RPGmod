@@ -14,9 +14,18 @@ public class PlayerLevel implements IPlayerLevel {
     private int luck = 1;
     private int vitality = 1;
 
-    // НОВЫЕ СТАТЫ (начинаем с 0)
     private int healthRegen = 0;
     private int manaRegen = 0;
+
+    // Стамина
+    private int stamina = 100;
+    private int maxStamina = 100;
+    private int staminaRegenDelay = 0;
+
+    // Монеты
+    private int copper = 0;
+    private int silver = 0;
+    private int gold = 0;
 
     @Override public int getLevel() { return level; }
     @Override public void setLevel(int level) { this.level = level; }
@@ -51,6 +60,34 @@ public class PlayerLevel implements IPlayerLevel {
     @Override public int getMana() { return mana; }
     @Override public void setMana(int mana) { this.mana = Math.min(mana, getMaxMana()); }
 
+    // --- СТАМИНА ---
+    @Override public int getStamina() { return stamina; }
+    @Override public void setStamina(int stamina) { this.stamina = Math.min(stamina, maxStamina); }
+    @Override public int getMaxStamina() { return maxStamina; }
+    @Override public int getStaminaRegenDelay() { return staminaRegenDelay; }
+    @Override public void setStaminaRegenDelay(int delay) { this.staminaRegenDelay = delay; }
+
+    // --- МОНЕТЫ ---
+    @Override public int getCopper() { return copper; }
+    @Override public void setCopper(int copper) { this.copper = copper; }
+    @Override public int getSilver() { return silver; }
+    @Override public void setSilver(int silver) { this.silver = silver; }
+    @Override public int getGold() { return gold; }
+    @Override public void setGold(int gold) { this.gold = gold; }
+
+    @Override
+    public void addCoins(int copperAmount) {
+        this.copper += copperAmount;
+        if (this.copper >= 100) {
+            this.silver += this.copper / 100;
+            this.copper = this.copper % 100;
+        }
+        if (this.silver >= 100) {
+            this.gold += this.silver / 100;
+            this.silver = this.silver % 100;
+        }
+    }
+
     @Override
     public void addXp(int amount) {
         this.xp += amount;
@@ -78,6 +115,11 @@ public class PlayerLevel implements IPlayerLevel {
         nbt.putInt("vitality", vitality);
         nbt.putInt("healthRegen", healthRegen);
         nbt.putInt("manaRegen", manaRegen);
+        nbt.putInt("stamina", stamina);
+        nbt.putInt("staminaRegenDelay", staminaRegenDelay);
+        nbt.putInt("copper", copper);
+        nbt.putInt("silver", silver);
+        nbt.putInt("gold", gold);
         return nbt;
     }
 
@@ -94,5 +136,10 @@ public class PlayerLevel implements IPlayerLevel {
         this.vitality = nbt.getInt("vitality");
         this.healthRegen = nbt.getInt("healthRegen");
         this.manaRegen = nbt.getInt("manaRegen");
+        this.stamina = nbt.contains("stamina") ? nbt.getInt("stamina") : 100;
+        this.staminaRegenDelay = nbt.getInt("staminaRegenDelay");
+        this.copper = nbt.getInt("copper");
+        this.silver = nbt.getInt("silver");
+        this.gold = nbt.getInt("gold");
     }
 }

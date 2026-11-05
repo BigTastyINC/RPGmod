@@ -28,19 +28,33 @@ public interface IPlayerLevel {
     int getVitality();
     void setVitality(int value);
 
-    // --- НОВЫЕ СТАТЫ ---
     int getHealthRegen();
     void setHealthRegen(int value);
 
     int getManaRegen();
     void setManaRegen(int value);
 
-    // МАНА
     int getMana();
     void setMana(int mana);
     default int getMaxMana() {
         return 100 + (getIntelligence() - 1) * 10;
     }
+
+    // --- СТАМИНА (вот их не хватало!) ---
+    int getStamina();
+    void setStamina(int stamina);
+    int getMaxStamina();
+    int getStaminaRegenDelay();
+    void setStaminaRegenDelay(int delay);
+
+    // --- МОНЕТЫ ---
+    int getCopper();
+    void setCopper(int copper);
+    int getSilver();
+    void setSilver(int silver);
+    int getGold();
+    void setGold(int gold);
+    void addCoins(int copperAmount);
 
     CompoundNBT serializeNBT();
     void deserializeNBT(CompoundNBT nbt);

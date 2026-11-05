@@ -36,20 +36,20 @@ public class XpEventHandler {
 
         final int finalMobLevel = mobLevel;
         int xpReward = finalMobLevel * 10;
+        int coinReward = finalMobLevel * 2;
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             data.addXp(xpReward);
+            data.addCoins(coinReward);
             PlayerEventHandler.applyStats(player, data);
 
             if (player instanceof ServerPlayerEntity) {
+                // В пакет добавлена data.getStamina()
                 NetworkHandler.INSTANCE.send(
                         PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                        // --- ИСПРАВЛЕНИЕ: Добавлены последние два параметра (HealthRegen и ManaRegen) ---
-                        new SyncLevelPacket(
-                                data.getLevel(), data.getXp(), data.getStatPoints(),
+                        new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                 data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(),
-                                data.getHealthRegen(), data.getManaRegen()
-                        )
+                                data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
                 );
             }
         });
