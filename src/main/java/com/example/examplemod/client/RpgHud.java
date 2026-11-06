@@ -15,7 +15,6 @@ public class RpgHud {
 
     @SubscribeEvent
     public static void onRenderPre(RenderGameOverlayEvent.Pre event) {
-        // Скрываем ванильные сердечки, еду, броню и ОПЫТ
         if (event.getType() == RenderGameOverlayEvent.ElementType.HEALTH ||
                 event.getType() == RenderGameOverlayEvent.ElementType.FOOD ||
                 event.getType() == RenderGameOverlayEvent.ElementType.ARMOR ||
@@ -29,6 +28,10 @@ public class RpgHud {
         if (event.getType() != RenderGameOverlayEvent.ElementType.TEXT) return;
 
         Minecraft mc = Minecraft.getInstance();
+
+        // ИСПРАВЛЕНО: screen вместо currentScreen
+        if (mc.screen != null) return;
+
         PlayerEntity player = mc.player;
         if (player == null) return;
 
@@ -39,31 +42,24 @@ public class RpgHud {
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
 
-            // === ВЕРХНИЙ ЛЕВЫЙ УГОЛ ===
             final int leftX = 10;
             final int startY = 10;
 
-            // 1. Уровень
             String levelText = "Уровень: " + data.getLevel();
             mc.font.drawShadow(ms, levelText, leftX, startY, 0xFFFF55);
 
-            // 2. Жизнь
             int hp = (int) player.getHealth();
             int maxHp = (int) player.getMaxHealth();
             drawBar(ms, mc, leftX, startY + 12, 100, 10, (float)hp/maxHp, 0xFF555555, 0xFFCC0000, hp + " / " + maxHp);
 
-            // 3. СТАМИНА (Вместо еды!)
             int stamina = data.getStamina();
             int maxStamina = data.getMaxStamina();
             drawBar(ms, mc, leftX, startY + 24, 100, 10, (float)stamina/maxStamina, 0xFF555555, 0xFFFFAA00, stamina + " / " + maxStamina);
 
-            // 4. Мана
             int mana = data.getMana();
             int maxMana = data.getMaxMana();
             drawBar(ms, mc, leftX, startY + 36, 100, 10, (float)mana/maxMana, 0xFF555555, 0xFF0000FF, mana + " / " + maxMana);
 
-
-            // === НИЗ ПО ЦЕНТРУ (Полоска Опыта) ===
             int currentLevel = data.getLevel();
             int currentXp = data.getXp();
             int xpNeeded = currentLevel * 100;
@@ -76,7 +72,6 @@ public class RpgHud {
             String xpText = currentXp + " / " + xpNeeded;
             drawBar(ms, mc, centerX - (xpBarWidth / 2), xpBarY, xpBarWidth, xpBarHeight, progress, 0xFF555555, 0xFF00FF00, xpText);
 
-            // === ПРАВЫЙ НИЖНИЙ УГОЛ (Крупная цифра) ===
             String bigLevelText = "" + currentLevel;
             int levelWidth = mc.font.width(bigLevelText);
             int levelX = width - levelWidth - 10;

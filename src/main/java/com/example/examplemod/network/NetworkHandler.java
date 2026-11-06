@@ -18,5 +18,8 @@ public class NetworkHandler {
         INSTANCE.registerMessage(id++, SyncLevelPacket.class, SyncLevelPacket::encode, SyncLevelPacket::decode, SyncLevelPacket::handle);
         INSTANCE.registerMessage(id++, OpenStatsGuiPacket.class, OpenStatsGuiPacket::encode, OpenStatsGuiPacket::decode, OpenStatsGuiPacket::handle);
         INSTANCE.registerMessage(id++, UpgradeStatPacket.class, UpgradeStatPacket::encode, UpgradeStatPacket::decode, UpgradeStatPacket::handle);
+        INSTANCE.registerMessage(id++, OpenShopPacket.class, OpenShopPacket::encode, OpenShopPacket::decode, OpenShopPacket::handle);
+        INSTANCE.registerMessage(id++, BuyItemPacket.class, BuyItemPacket::encode, BuyItemPacket::decode, BuyItemPacket::handle);
+        INSTANCE.registerMessage(id++, SellHeldItemPacket.class, SellHeldItemPacket::encode, SellHeldItemPacket::decode, SellHeldItemPacket::handle);
     }
 }

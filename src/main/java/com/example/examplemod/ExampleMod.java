@@ -33,7 +33,6 @@ public class ExampleMod
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
 
-        // Регистрация предметов и блоков
         ModItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
         ModBlocks.BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
 
@@ -43,7 +42,6 @@ public class ExampleMod
             RpgCommand.register(event.getDispatcher());
         });
 
-        // Убираем лимит здоровья
         removeHealthLimit();
     }
 
@@ -55,7 +53,6 @@ public class ExampleMod
             modifiersField.setAccessible(true);
             modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
             field.setDouble(Attributes.MAX_HEALTH, 1000000.0);
-            LOGGER.info("Лимит здоровья успешно изменен на 1000000!");
         } catch (Exception e) {
             try {
                 Field field = RangedAttribute.class.getDeclaredField("field_233752_b_");
@@ -64,9 +61,7 @@ public class ExampleMod
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
                 field.setDouble(Attributes.MAX_HEALTH, 1000000.0);
-            } catch (Exception ex) {
-                LOGGER.error("Не удалось убрать лимит здоровья: " + ex.getMessage());
-            }
+            } catch (Exception ex) {}
         }
     }
 
@@ -83,7 +78,6 @@ public class ExampleMod
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {
         @SubscribeEvent
-        public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent) {
-        }
+        public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent) {}
     }
 }

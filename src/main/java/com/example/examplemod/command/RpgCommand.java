@@ -7,8 +7,12 @@ import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -29,7 +33,6 @@ public class RpgCommand {
                                             data.addXp(amount);
                                             PlayerEventHandler.applyStats(player, data);
                                             player.sendMessage(new StringTextComponent("Добавлено " + amount + " опыта!"), player.getUUID());
-                                            // В пакет добавлена data.getStamina()
                                             NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
@@ -46,7 +49,6 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addStatPoints(amount);
                                             player.sendMessage(new StringTextComponent("§aДобавлено " + amount + " очков!"), player.getUUID());
-                                            // В пакет добавлена data.getStamina()
                                             NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
@@ -63,7 +65,6 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addCoins(amount);
                                             player.sendMessage(new StringTextComponent("§6Добавлено " + amount + " меди!"), player.getUUID());
-                                            // В пакет добавлена data.getStamina()
                                             NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
@@ -116,6 +117,45 @@ public class RpgCommand {
                                             return 1;
                                         })
                                 )
+                        )
+                )
+                .then(Commands.literal("npc")
+                        .then(Commands.argument("type", StringArgumentType.string())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                    String type = StringArgumentType.getString(context, "type");
+                                    if (player != null) {
+                                        VillagerEntity npc = new VillagerEntity(EntityType.VILLAGER, player.level);
+                                        // ИСПРАВЛЕНО: setPos вместо setPosition
+                                        npc.setPos(player.getX() + 2, player.getY(), player.getZ() + 2);
+
+                                        switch (type.toLowerCase()) {
+                                            case "guild":
+                                                npc.setCustomName(new StringTextComponent("§6Глава Гильдии"));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.NITWIT));
+                                                break;
+                                            case "weapon":
+                                                npc.setCustomName(new StringTextComponent("§cОружейник"));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.WEAPONSMITH));
+                                                break;
+                                            case "armor":
+                                                npc.setCustomName(new StringTextComponent("§7Бронник"));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.ARMORER));
+                                                break;
+                                            case "mage":
+                                                npc.setCustomName(new StringTextComponent("§5Маг"));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.CLERIC));
+                                                break;
+                                            default:
+                                                player.sendMessage(new StringTextComponent("§cТипы: guild, weapon, armor, mage"), player.getUUID());
+                                                return 1;
+                                        }
+                                        npc.setCustomNameVisible(true);
+                                        player.level.addFreshEntity(npc);
+                                        player.sendMessage(new StringTextComponent("§aNPC заспавнен!"), player.getUUID());
+                                    }
+                                    return 1;
+                                })
                         )
                 )
         );
