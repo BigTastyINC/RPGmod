@@ -49,7 +49,6 @@ public class NpcSpawnHandler {
         if (villager.getPersistentData().getBoolean(PROCESSED_TAG)) return;
         villager.getPersistentData().putBoolean(PROCESSED_TAG, true);
 
-        // Если у жителя уже стоит НАШЕ NPC-имя — пропускаем
         if (villager.hasCustomName()) {
             String oldName = villager.getCustomName().getString();
             if (oldName.contains("Глава Гильдии") || oldName.contains("Оружейник")
@@ -58,13 +57,10 @@ public class NpcSpawnHandler {
             }
         }
 
-        // Проверка шанса
         if (RANDOM.nextInt(100) >= NPC_CHANCE_PERCENT) return;
 
-        // Вычисляем уровень моба САМИ (не полагаемся на MobLevelHandler)
         int level = calculateLevel(villager);
 
-        // Выбираем тип NPC
         int type = RANDOM.nextInt(4);
         String npcBaseName;
         switch (type) {
@@ -86,15 +82,12 @@ public class NpcSpawnHandler {
                 break;
         }
 
-        // Формируем финальное имя: [Lvl X] §6Глава Гильдии
         String finalName = "[Lvl " + level + "] " + npcBaseName;
         villager.setCustomName(new StringTextComponent(finalName));
         villager.setCustomNameVisible(true);
     }
 
-    // Считает уровень по той же формуле, что и MobLevelHandler (расстояние от центра)
     private static int calculateLevel(VillagerEntity villager) {
-        // Если имя уже есть с [Lvl X] — используем его
         if (villager.hasCustomName()) {
             String name = villager.getCustomName().getString();
             if (name.startsWith("[Lvl ")) {
@@ -106,11 +99,12 @@ public class NpcSpawnHandler {
                 }
             }
         }
-        // Иначе считаем по расстоянию от центра мира (0, 64, 0)
         double dx = villager.getX() - 0.0;
         double dy = villager.getY() - 64.0;
         double dz = villager.getZ() - 0.0;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        return Math.max(1, 1 + (int) (distance / 100.0));
+
+        // ИЗМЕНЕНО: 1 уровень за 45 блоков (4500 блоков = ~100 уровень)
+        return Math.max(1, 1 + (int) (distance / 45.0));
     }
 }

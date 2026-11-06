@@ -12,6 +12,14 @@ public class ModItems {
     public static final RegistryObject<Item> STATS_BOOK = ITEMS.register("stats_book",
             () -> new StatsBookItem(new Item.Properties().stacksTo(1).tab(ModItemGroup.INSTANCE)));
 
+    // --- МАГИЧЕСКИЕ КРИСТАЛЛЫ ---
+    public static final RegistryObject<Item> SMALL_MAGIC_CRYSTAL = ITEMS.register("small_magic_crystal",
+            () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));
+    public static final RegistryObject<Item> MEDIUM_MAGIC_CRYSTAL = ITEMS.register("medium_magic_crystal",
+            () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));
+    public static final RegistryObject<Item> LARGE_MAGIC_CRYSTAL = ITEMS.register("large_magic_crystal",
+            () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));
+
     // --- СЛИТКИ ---
     public static final RegistryObject<Item> SILVER_INGOT = ITEMS.register("silver_ingot", () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));
     public static final RegistryObject<Item> COBALT_INGOT = ITEMS.register("cobalt_ingot", () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));

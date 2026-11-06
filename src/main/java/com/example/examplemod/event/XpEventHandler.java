@@ -2,6 +2,7 @@ package com.example.examplemod.event;
 
 import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.ModCapabilities;
+import com.example.examplemod.entity.MobRarity;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
 import net.minecraft.entity.MobEntity;
@@ -26,8 +27,17 @@ public class XpEventHandler {
         int mobLevel = killedMob.getPersistentData().getInt("RpgMobLevel");
         if (mobLevel <= 0) mobLevel = 1;
 
+        // Получаем редкость моба (0 = Common, 1 = Leader, 2 = Lord)
+        int rarityIndex = killedMob.getPersistentData().getInt("RpgMobRarity");
+        MobRarity[] rarities = MobRarity.values();
+        MobRarity rarity = rarities[Math.min(rarityIndex, rarities.length - 1)];
+
         final int finalMobLevel = mobLevel;
-        final int baseXpReward = finalMobLevel * 10;
+        final MobRarity finalRarity = rarity;
+
+        // Базовый опыт и монеты умножаются на редкость
+        final int baseXpReward = (int) (finalMobLevel * 10 * finalRarity.getXpMultiplier());
+        final int baseCoinReward = (int) (finalMobLevel * 2 * finalRarity.getXpMultiplier());
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             int actualXp = baseXpReward;
@@ -41,7 +51,7 @@ public class XpEventHandler {
             }
 
             data.addXp(actualXp);
-            data.addCoins(finalMobLevel * 2);
+            data.addCoins(baseCoinReward);
             PlayerEventHandler.applyStats(player, data);
 
             if (player instanceof ServerPlayerEntity) {

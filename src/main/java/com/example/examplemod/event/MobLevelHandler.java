@@ -1,5 +1,6 @@
 package com.example.examplemod.event;
 
+import com.example.examplemod.entity.MobRarity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
@@ -27,39 +28,48 @@ public class MobLevelHandler {
         double dz = mob.getZ() - 0.0;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        int baseLevel = 1 + (int) (distance / 100.0);
+        // ИЗМЕНЕНО: 1 уровень за 45 блоков (4500 блоков = ~100 уровень)
+        int baseLevel = 1 + (int) (distance / 45.0);
 
         Random rand = new Random();
         int randomVariance = rand.nextInt(3) - 1;
         int finalLevel = Math.max(1, baseLevel + randomVariance);
 
-        applyLevelToMob(mob, finalLevel);
+        int roll = rand.nextInt(100);
+        MobRarity rarity;
+        if (roll < 85) {
+            rarity = MobRarity.COMMON;
+        } else if (roll < 95) {
+            rarity = MobRarity.LEADER;
+        } else {
+            rarity = MobRarity.LORD;
+        }
+
+        applyLevelToMob(mob, finalLevel, rarity);
     }
 
-    private static void applyLevelToMob(MobEntity mob, int level) {
-        // 1. Здоровье
+    private static void applyLevelToMob(MobEntity mob, int level, MobRarity rarity) {
         ModifiableAttributeInstance maxHealth = mob.getAttribute(Attributes.MAX_HEALTH);
         if (maxHealth != null) {
             double baseHealth = maxHealth.getBaseValue();
-            double newHealth = baseHealth * (1.0 + (level - 1) * 0.5);
+            double newHealth = baseHealth * (1.0 + (level - 1) * 0.5) * rarity.getHealthMultiplier();
             maxHealth.setBaseValue(newHealth);
             mob.setHealth((float) newHealth);
         }
 
-        // 2. Урон
         ModifiableAttributeInstance attackDamage = mob.getAttribute(Attributes.ATTACK_DAMAGE);
         if (attackDamage != null) {
             double baseDamage = attackDamage.getBaseValue();
-            double newDamage = baseDamage * (1.0 + (level - 1) * 0.2);
+            double newDamage = baseDamage * (1.0 + (level - 1) * 0.2) * rarity.getDamageMultiplier();
             attackDamage.setBaseValue(newDamage);
         }
 
-        // 3. Имя над головой
-        String levelPrefix = "[Lvl " + level + "] ";
-        mob.setCustomName(new StringTextComponent(levelPrefix + mob.getName().getString()));
+        String levelPrefix = "§7[Lvl " + level + "] ";
+        String finalName = levelPrefix + rarity.getPrefix() + mob.getName().getString();
+        mob.setCustomName(new StringTextComponent(finalName));
         mob.setCustomNameVisible(true);
 
-        // --- НАШ КОД: Сохраняем уровень моба в его NBT данные ---
         mob.getPersistentData().putInt("RpgMobLevel", level);
+        mob.getPersistentData().putInt("RpgMobRarity", rarity.ordinal());
     }
 }

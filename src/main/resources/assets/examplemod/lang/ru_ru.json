@@ -54,5 +54,9 @@
 
   "itemGroup.examplemod": "RPG Мод",
   "item.examplemod.mana_potion": "Зелье Маны",
-  "item.examplemod.health_potion": "Зелье Здоровья"
+  "item.examplemod.health_potion": "Зелье Здоровья",
+
+  "item.examplemod.small_magic_crystal": "Малый магический кристалл",
+  "item.examplemod.medium_magic_crystal": "Средний магический кристалл",
+  "item.examplemod.large_magic_crystal": "Большой магический кристалл"
 }

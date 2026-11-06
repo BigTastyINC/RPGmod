@@ -1,6 +1,7 @@
 package com.example.examplemod.event;
 
 import com.example.examplemod.buffs.RpgBuffs;
+import com.example.examplemod.item.ModItems; // ИСПРАВЛЕНО: правильный импорт
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.item.RpgPotionItem;
 import net.minecraft.item.ItemStack;
@@ -20,7 +21,7 @@ public class ItemTooltipHandler {
 
         if (nbt == null) return;
 
-        // === Оружие / броня / зелья ===
+        // === Оружие / броня / зелья / кристаллы ===
         if (nbt.contains("ItemLevel")) {
             int level = nbt.getInt("ItemLevel");
             int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
@@ -34,7 +35,15 @@ public class ItemTooltipHandler {
                 int amount = (int) (level * 5 * rarity.getMultiplier());
                 if (potion.isManaPotion()) event.getToolTip().add(new StringTextComponent("§bВосстанавливает " + amount + " маны"));
                 else event.getToolTip().add(new StringTextComponent("§cВосстанавливает " + amount + " здоровья"));
-            } else {
+            }
+            // НОВОЕ: Проверка на кристаллы
+            else if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get() ||
+                    stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get() ||
+                    stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) {
+                int energy = (int) (level * 10 * rarity.getMultiplier());
+                event.getToolTip().add(new StringTextComponent("§dМагическая энергия: " + energy));
+            }
+            else {
                 if (nbt.getInt("StatStrength") > 0) event.getToolTip().add(new StringTextComponent("§c+" + nbt.getInt("StatStrength") + " Сила"));
                 if (nbt.getInt("StatDexterity") > 0) event.getToolTip().add(new StringTextComponent("§b+" + nbt.getInt("StatDexterity") + " Ловкость"));
                 if (nbt.getInt("StatIntelligence") > 0) event.getToolTip().add(new StringTextComponent("§d+" + nbt.getInt("StatIntelligence") + " Интеллект"));
@@ -48,11 +57,9 @@ public class ItemTooltipHandler {
             Rarity rarity = Rarity.values()[rIndex];
             int buffId = RpgBuffs.getBuffForFood(stack.getItem());
 
-            // Считаем финальную силу баффа и форматируем описание
             float power = RpgBuffs.BASE_POWER[buffId] * RpgBuffs.RARITY_MULTIPLIER[rIndex];
             String desc = RpgBuffs.DESCRIPTIONS[buffId];
 
-            // Подставляем фактическое значение в описание
             if (desc.contains("%")) {
                 int percent = (int) Math.round(power * 100);
                 desc = desc.replace("%", "" + percent);
