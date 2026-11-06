@@ -11,44 +11,29 @@ import net.minecraft.item.ShovelItem;
 import net.minecraft.item.SwordItem;
 import net.minecraft.item.TridentItem;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tags.ItemTags;
 import net.minecraftforge.fml.ModList;
 
 import java.util.Random;
 
 public class ItemStatHelper {
 
-    /**
-     * Возвращает true ТОЛЬКО для оружия: мечи, топоры, трезубцы, а также оружие из Tinkers' Construct.
-     * Кирки, лопаты и мотыги — НЕ оружие.
-     */
     public static boolean isWeapon(ItemStack stack) {
         Item item = stack.getItem();
 
-        // ===== 1. Стандартные ванильные классы =====
+        // 1. Стандартные ванильные классы
         if (item instanceof SwordItem) return true;
         if (item instanceof AxeItem) return true;
         if (item instanceof TridentItem) return true;
 
-        // ===== 2. Кастомные модовые мечи/топоры через теги =====
-        if (item.is(ItemTags.SWORDS)) return true;
-        if (item.is(ItemTags.AXES)) return true;
-
-        // ===== 3. Интеграция с Tinkers' Construct =====
-        // Проверяем, загружен ли мод. Если да - вызываем наш безопасный метод.
+        // 2. Tinkers' Construct (безопасная проверка, только если мод загружен)
         if (ModList.get().isLoaded("tconstruct")) {
-            if (TinkersCompat.isTinkersWeapon(stack)) {
-                return true;
-            }
+            if (TinkersCompat.isTinkersWeapon(stack)) return true;
         }
 
-        // ===== 4. Явно исключаем инструменты (на всякий случай) =====
+        // 3. Явно исключаем инструменты
         if (item instanceof PickaxeItem) return false;
         if (item instanceof ShovelItem) return false;
         if (item instanceof HoeItem) return false;
-        if (item.is(ItemTags.PICKAXES)) return false;
-        if (item.is(ItemTags.SHOVELS)) return false;
-        if (item.is(ItemTags.HOES)) return false;
 
         return false;
     }
@@ -81,7 +66,6 @@ public class ItemStatHelper {
         int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
 
         if (isArmor(stack)) {
-            // Броня: все 5 статов (жизнь чаще)
             for (int i = 0; i < totalStatPoints; i++) {
                 int r = rand.nextInt(6);
                 switch (r) {
@@ -95,7 +79,6 @@ public class ItemStatHelper {
             }
             if (vit == 0) vit = 1;
         } else {
-            // Оружие: только Сила и Ловкость
             for (int i = 0; i < totalStatPoints; i++) {
                 if (rand.nextBoolean()) str++;
                 else dex++;
