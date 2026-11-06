@@ -13,9 +13,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.StringTextComponent;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StatsScreen extends Screen {
 
     private static final ResourceLocation BOOK_TEXTURE = new ResourceLocation("examplemod", "textures/gui/stats_book.png");
+
+    private final List<Button> plusButtons = new ArrayList<>();
 
     public StatsScreen() {
         super(new StringTextComponent("Характеристики"));
@@ -27,18 +32,20 @@ public class StatsScreen extends Screen {
         int centerX = this.width / 2;
         int centerY = this.height / 2;
 
+        plusButtons.clear();
+
         int buttonX = centerX - 35;
         int buttonStartY = centerY - 74;
         int lineHeight = 15;
 
-        this.addButton(new Button(buttonX, buttonStartY, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("strength")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("dexterity")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 2, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("intelligence")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 3, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("luck")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 4, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("vitality")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 5, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("healthregen")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 6, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("manaregen")));
-        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 7, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("staminaregen")));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("strength"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("dexterity"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 2, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("intelligence"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 3, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("luck"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 4, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("vitality"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 5, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("healthregen"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 6, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("manaregen"))));
+        plusButtons.add(this.addButton(new Button(buttonX, buttonStartY + lineHeight * 7, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("staminaregen"))));
 
         this.addButton(new Button(centerX - 40, centerY + 95, 80, 20, new StringTextComponent("Закрыть"), b -> this.onClose()));
     }
@@ -57,12 +64,22 @@ public class StatsScreen extends Screen {
         Minecraft.getInstance().getTextureManager().bind(BOOK_TEXTURE);
         blit(matrixStack, centerX - 256, centerY - 128, 0, 0, 512, 256, 512, 256);
 
-        drawCenteredString(matrixStack, this.font, "§6Характеристики", centerX - 70, centerY - 90, 0xFFFFFF);
-        drawCenteredString(matrixStack, this.font, "§6Профессии", centerX + 70, centerY - 90, 0xFFFFFF);
+        // Заголовки
+        drawCenteredString(matrixStack, this.font, "§6Характеристики", centerX - 70, centerY - 95, 0xFFFFFF);
+        drawCenteredString(matrixStack, this.font, "§6Профессии", centerX + 70, centerY - 95, 0xFFFFFF);
 
         PlayerEntity player = Minecraft.getInstance().player;
         if (player != null) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+
+                int points = getStatPoints();
+                // Очки подняты чуть выше (centerY - 86)
+                drawCenteredString(matrixStack, this.font, "§eОчки: " + points, centerX - 70, centerY - 86, 0xFFFFFF);
+
+                // Прячем плюсики, если очков нет
+                for (Button b : plusButtons) {
+                    b.visible = points > 0;
+                }
 
                 int textX = centerX - 110;
                 int textStartY = centerY - 70;
@@ -103,7 +120,6 @@ public class StatsScreen extends Screen {
     private void drawProfession(MatrixStack ms, IPlayerLevel data, Profession prof, int x, int y, int barColor, String title) {
         int lvl = data.getProfessionLevel(prof);
         int xp = data.getProfessionXp(prof);
-        // Учитываем коэффициент сложности профессии
         int max = lvl * 25 * prof.getXpMultiplier();
 
         drawString(ms, this.font, title, x, y, 0xFFFFFF);
@@ -115,6 +131,16 @@ public class StatsScreen extends Screen {
         progress = Math.max(0.0f, Math.min(1.0f, progress));
         fill(ms, x, y, x + width, y + height, 0xFF555555);
         fill(ms, x, y, x + (int) (width * progress), y + height, fillColor);
+    }
+
+    private int getStatPoints() {
+        PlayerEntity player = Minecraft.getInstance().player;
+        if (player != null) {
+            final int[] points = {0};
+            player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> points[0] = data.getStatPoints());
+            return points[0];
+        }
+        return 0;
     }
 
     @Override
