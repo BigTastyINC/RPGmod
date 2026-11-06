@@ -6,8 +6,12 @@ import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.capability.PlayerLevelProvider;
 import com.example.examplemod.item.ItemStatHelper;
 import com.example.examplemod.item.ModItems;
+import com.example.examplemod.item.Rarity;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
+import com.example.examplemod.profession.Profession;
+import com.example.examplemod.profession.ProfessionData;
+import com.example.examplemod.profession.RarityRoller;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.Attributes;
@@ -66,12 +70,64 @@ public class PlayerEventHandler {
         if (event.getPlayer().level.isClientSide) return;
         PlayerEntity player = event.getPlayer();
         ItemStack craftedItem = event.getCrafting();
-        if (ItemStatHelper.isGear(craftedItem)) {
-            player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                ItemStatHelper.generateStats(craftedItem, data.getLevel());
-                player.displayClientMessage(new StringTextComponent("§aВы создали предмет " + data.getLevel() + "-го уровня!"), false);
-            });
-        }
+
+        if (!ItemStatHelper.isGear(craftedItem) && !ItemStatHelper.isPotion(craftedItem)) return;
+
+        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+
+            // === ЛОГИКА ДЛЯ ЗЕЛИЙ (АЛХИМИК) ===
+            if (ItemStatHelper.isPotion(craftedItem)) {
+                Profession prof = Profession.ALCHEMIST;
+                int xpGain = 50; // Опыт за зелье
+
+                boolean leveledUp = data.addProfessionXp(prof, xpGain);
+                int profLevel = data.getProfessionLevel(prof);
+                Rarity rarity = RarityRoller.roll(profLevel);
+
+                ItemStatHelper.applyPotionRarity(craftedItem, data.getLevel(), rarity);
+
+                player.displayClientMessage(new StringTextComponent(
+                        "§aСоздано зелье: " + rarity.getColor() + "[" + rarity.getName() + "]"
+                                + " §7ур. " + data.getLevel()
+                                + " §8| §7Алхимик: §e" + profLevel
+                ), false);
+
+                if (leveledUp) {
+                    player.displayClientMessage(new StringTextComponent(
+                            "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
+                    ), false);
+                }
+
+                syncData(player, data);
+                return;
+            }
+
+            // === ЛОГИКА ДЛЯ ОРУЖИЯ/БРОНИ ===
+            boolean isWeapon = ItemStatHelper.isWeapon(craftedItem);
+            Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
+            int xpGain = isWeapon ? 100 : 50;
+
+            boolean leveledUp = data.addProfessionXp(prof, xpGain);
+            int profLevel = data.getProfessionLevel(prof);
+            Rarity rarity = RarityRoller.roll(profLevel);
+
+            ItemStatHelper.generateStatsWithRarity(craftedItem, data.getLevel(), rarity);
+
+            player.displayClientMessage(new StringTextComponent(
+                    "§aСоздано: " + rarity.getColor() + "[" + rarity.getName() + "]"
+                            + " §7ур. " + data.getLevel()
+                            + " §8| §7" + prof.getDisplayName() + ": §e" + profLevel
+                            + (profLevel >= ProfessionData.MAX_LEVEL ? " §6(МАКС)" : "")
+            ), false);
+
+            if (leveledUp) {
+                player.displayClientMessage(new StringTextComponent(
+                        "§6⬆ Профессия повышена: §e" + prof.getDisplayName() + " §7→ §e" + profLevel
+                ), false);
+            }
+
+            syncData(player, data);
+        });
     }
 
     @SubscribeEvent
@@ -90,7 +146,6 @@ public class PlayerEventHandler {
             if (player.tickCount % 20 == 0) {
                 scanInventory(player, data);
 
-                // === СТАМИНА: реген с учётом стата ===
                 if (data.getStaminaRegenDelay() > 0) {
                     data.setStaminaRegenDelay(data.getStaminaRegenDelay() - 20);
                     if (data.getStaminaRegenDelay() < 0) data.setStaminaRegenDelay(0);
@@ -100,7 +155,6 @@ public class PlayerEventHandler {
                     changed = true;
                 }
 
-                // Мана
                 int manaRegenAmount = 1 + data.getManaRegen();
                 if (data.hasBuff(RpgBuffs.MANA_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.MANA_REGEN);
@@ -115,7 +169,6 @@ public class PlayerEventHandler {
                     changed = true;
                 }
 
-                // Здоровье
                 float healthRegenAmount = data.getHealthRegen() / 3.0f;
                 if (data.hasBuff(RpgBuffs.HEALTH_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.HEALTH_REGEN);
@@ -146,7 +199,18 @@ public class PlayerEventHandler {
             ItemStack stack = sp.inventory.getItem(i);
 
             if (ItemStatHelper.isGear(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
-                ItemStatHelper.generateStats(stack, data.getLevel());
+                boolean isWeapon = ItemStatHelper.isWeapon(stack);
+                Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
+                int profLevel = data.getProfessionLevel(prof);
+                Rarity rarity = RarityRoller.roll(profLevel);
+                ItemStatHelper.generateStatsWithRarity(stack, data.getLevel(), rarity);
+                modified = true;
+            }
+
+            if (ItemStatHelper.isPotion(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
+                int profLevel = data.getProfessionLevel(Profession.ALCHEMIST);
+                Rarity rarity = RarityRoller.roll(profLevel);
+                ItemStatHelper.applyPotionRarity(stack, data.getLevel(), rarity);
                 modified = true;
             }
 
@@ -260,15 +324,29 @@ public class PlayerEventHandler {
         }
     }
 
-    private static void syncData(PlayerEntity player, IPlayerLevel data) {
+    public static SyncLevelPacket buildSyncPacket(IPlayerLevel data) {
+        Profession[] all = Profession.values();
+        int[] levels = new int[all.length];
+        int[] xps = new int[all.length];
+        for (Profession p : all) {
+            levels[p.ordinal()] = data.getProfessionLevel(p);
+            xps[p.ordinal()] = data.getProfessionXp(p);
+        }
+        return new SyncLevelPacket(
+                data.getLevel(), data.getXp(), data.getStatPoints(),
+                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                data.getStamina(), data.getStaminaRegen(),
+                data.getCopper(), data.getSilver(), data.getGold(),
+                levels, xps
+        );
+    }
+
+    public static void syncData(PlayerEntity player, IPlayerLevel data) {
         if (player instanceof ServerPlayerEntity) {
             NetworkHandler.INSTANCE.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
-                    new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
-                            data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
-                            data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                            data.getStamina(), data.getStaminaRegen(),
-                            data.getCopper(), data.getSilver(), data.getGold())
+                    buildSyncPacket(data)
             );
         }
     }

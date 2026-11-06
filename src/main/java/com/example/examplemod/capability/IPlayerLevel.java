@@ -1,5 +1,6 @@
 package com.example.examplemod.capability;
 
+import com.example.examplemod.profession.Profession;
 import net.minecraft.nbt.CompoundNBT;
 
 public interface IPlayerLevel {
@@ -29,7 +30,6 @@ public interface IPlayerLevel {
     int getManaRegen();
     void setManaRegen(int value);
 
-    // ===== СТАМИНА =====
     int getStamina();
     void setStamina(int stamina);
     int getStaminaRegen();
@@ -37,7 +37,6 @@ public interface IPlayerLevel {
     int getStaminaRegenDelay();
     void setStaminaRegenDelay(int delay);
 
-    // Максимальная стамина зависит от силы: 100 + 3 за каждое очко силы выше 1
     default int getMaxStamina() {
         return 100 + (getStrength() - 1) * 3;
     }
@@ -62,6 +61,13 @@ public interface IPlayerLevel {
     boolean hasBuff(int buffId);
     void clearBuff(int buffId);
     CompoundNBT getAllBuffs();
+
+    // ===== ПРОФЕССИИ =====
+    int getProfessionLevel(Profession p);
+    int getProfessionXp(Profession p);
+    void setProfessionLevel(Profession p, int level);
+    void setProfessionXp(Profession p, int xp);
+    boolean addProfessionXp(Profession p, int amount);
 
     CompoundNBT serializeNBT();
     void deserializeNBT(CompoundNBT nbt);

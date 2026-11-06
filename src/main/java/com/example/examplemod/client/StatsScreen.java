@@ -1,16 +1,21 @@
 package com.example.examplemod.client;
 
+import com.example.examplemod.capability.IPlayerLevel;
 import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.UpgradeStatPacket;
+import com.example.examplemod.profession.Profession;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.StringTextComponent;
 
 public class StatsScreen extends Screen {
+
+    private static final ResourceLocation BOOK_TEXTURE = new ResourceLocation("examplemod", "textures/gui/stats_book.png");
 
     public StatsScreen() {
         super(new StringTextComponent("Характеристики"));
@@ -20,23 +25,22 @@ public class StatsScreen extends Screen {
     protected void init() {
         super.init();
         int centerX = this.width / 2;
-        int startY = this.height / 2 - 80;
-        int lineHeight = 18;
-        int buttonX = centerX + 100;
+        int centerY = this.height / 2;
 
-        // Кнопки для статов
-        this.addButton(new Button(buttonX, startY - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("strength")));
-        this.addButton(new Button(buttonX, startY + lineHeight - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("dexterity")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 2 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("intelligence")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 3 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("luck")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 4 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("vitality")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 5 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("healthregen")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 6 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("manaregen")));
-        this.addButton(new Button(buttonX, startY + lineHeight * 7 - 2, 20, 18, new StringTextComponent("+"), b -> sendUpgrade("staminaregen")));
+        int buttonX = centerX - 35;
+        int buttonStartY = centerY - 74;
+        int lineHeight = 15;
 
-        // Кнопка «Закрыть» — сдвигаем ниже текста, чтобы не было наложения
-        int bottomY = startY + lineHeight * 8 + 20;
-        this.addButton(new Button(centerX - 50, bottomY + 45, 100, 20, new StringTextComponent("Закрыть"), b -> this.onClose()));
+        this.addButton(new Button(buttonX, buttonStartY, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("strength")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("dexterity")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 2, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("intelligence")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 3, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("luck")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 4, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("vitality")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 5, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("healthregen")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 6, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("manaregen")));
+        this.addButton(new Button(buttonX, buttonStartY + lineHeight * 7, 15, 15, new StringTextComponent("+"), b -> sendUpgrade("staminaregen")));
+
+        this.addButton(new Button(centerX - 40, centerY + 95, 80, 20, new StringTextComponent("Закрыть"), b -> this.onClose()));
     }
 
     private void sendUpgrade(String stat) {
@@ -48,51 +52,69 @@ public class StatsScreen extends Screen {
         this.renderBackground(matrixStack);
 
         int centerX = this.width / 2;
-        int startY = this.height / 2 - 80;
-        int lineHeight = 18;
+        int centerY = this.height / 2;
 
-        // Увеличенный фон, чтобы кнопка «Закрыть» влезла
-        fill(matrixStack, centerX - 150, this.height / 2 - 130, centerX + 150, this.height / 2 + 180, 0xCC000000);
+        Minecraft.getInstance().getTextureManager().bind(BOOK_TEXTURE);
+        blit(matrixStack, centerX - 256, centerY - 128, 0, 0, 512, 256, 512, 256);
 
-        // Заголовки
-        drawCenteredString(matrixStack, this.font, "§6Характеристики", centerX, this.height / 2 - 120, 0xFFFFFF);
-        drawCenteredString(matrixStack, this.font, "§eСвободные очки: " + getStatPoints(), centerX, this.height / 2 - 105, 0xFFFFFF);
+        drawCenteredString(matrixStack, this.font, "§6Характеристики", centerX - 70, centerY - 90, 0xFFFFFF);
+        drawCenteredString(matrixStack, this.font, "§6Профессии", centerX + 70, centerY - 90, 0xFFFFFF);
 
         PlayerEntity player = Minecraft.getInstance().player;
         if (player != null) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                int textX = centerX - 130;
 
-                drawString(matrixStack, this.font, "§cСила: " + data.getStrength() + " §7(+урон, +макс.стам)", textX, startY, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§bЛовкость: " + data.getDexterity(), textX, startY + lineHeight, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§dИнтеллект: " + data.getIntelligence(), textX, startY + lineHeight * 2, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§eУдача: " + data.getLuck(), textX, startY + lineHeight * 3, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§4Жизнь: " + data.getVitality(), textX, startY + lineHeight * 4, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§2Реген Жизни: " + data.getHealthRegen(), textX, startY + lineHeight * 5, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§3Реген Маны: " + data.getManaRegen(), textX, startY + lineHeight * 6, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§6Реген Стамины: " + data.getStaminaRegen(), textX, startY + lineHeight * 7, 0xFFFFFF);
+                int textX = centerX - 110;
+                int textStartY = centerY - 70;
+                int lineHeight = 15;
 
-                // Разделитель
-                drawCenteredString(matrixStack, this.font, "§8--------------------", centerX, startY + lineHeight * 8 + 5, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§cСила: " + data.getStrength(), textX, textStartY, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§bЛовкость: " + data.getDexterity(), textX, textStartY + lineHeight, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§dИнтеллект: " + data.getIntelligence(), textX, textStartY + lineHeight * 2, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§eУдача: " + data.getLuck(), textX, textStartY + lineHeight * 3, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§4Жизнь: " + data.getVitality(), textX, textStartY + lineHeight * 4, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§2Реген HP: " + data.getHealthRegen(), textX, textStartY + lineHeight * 5, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§3Реген MP: " + data.getManaRegen(), textX, textStartY + lineHeight * 6, 0xFFFFFF);
+                drawString(matrixStack, this.font, "§6Реген СП: " + data.getStaminaRegen(), textX, textStartY + lineHeight * 7, 0xFFFFFF);
 
-                // Итоговая информация (Уровень, Мана, Стамина)
-                int bottomY = startY + lineHeight * 8 + 20;
-                drawString(matrixStack, this.font, "§aУровень: " + data.getLevel() + " | Опыт: " + data.getXp(), textX, bottomY, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§9Мана: " + data.getMana() + " / " + data.getMaxMana(), textX, bottomY + 14, 0xFFFFFF);
-                drawString(matrixStack, this.font, "§6Стамина: " + data.getStamina() + " / " + data.getMaxStamina(), textX, bottomY + 28, 0xFFFFFF);
+                matrixStack.pushPose();
+                matrixStack.translate(centerX - 110, centerY + 55, 0);
+                matrixStack.scale(0.5f, 0.5f, 1.0f);
+
+                String info = "§aУр: " + data.getLevel() + " §7| §aОпыт: " + data.getXp() + " §7| §9МП: " + data.getMana() + " §7| §6СП: " + data.getStamina();
+                this.font.drawShadow(matrixStack, info, 0, 0, 0xFFFFFF);
+
+                matrixStack.popPose();
+
+                int rightX = centerX + 30;
+                int startY = centerY - 70;
+                int spacing = 26;
+
+                drawProfession(matrixStack, data, Profession.WEAPONSMITH, rightX, startY, 0xFFFFAA00, "§6Оружейник");
+                drawProfession(matrixStack, data, Profession.ARMORSMITH, rightX, startY + spacing, 0xFFAAAAAA, "§7Бронник");
+                drawProfession(matrixStack, data, Profession.ALCHEMIST, rightX, startY + spacing * 2, 0xFFAA00AA, "§dАлхимик");
+                drawProfession(matrixStack, data, Profession.FISHERMAN, rightX, startY + spacing * 3, 0xFF00AAAA, "§bРыбак");
+                drawProfession(matrixStack, data, Profession.MINER, rightX, startY + spacing * 4, 0xFFFF5555, "§cРудокоп");
             });
         }
         super.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 
-    private int getStatPoints() {
-        PlayerEntity player = Minecraft.getInstance().player;
-        if (player != null) {
-            final int[] points = {0};
-            player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> points[0] = data.getStatPoints());
-            return points[0];
-        }
-        return 0;
+    private void drawProfession(MatrixStack ms, IPlayerLevel data, Profession prof, int x, int y, int barColor, String title) {
+        int lvl = data.getProfessionLevel(prof);
+        int xp = data.getProfessionXp(prof);
+        // Учитываем коэффициент сложности профессии
+        int max = lvl * 25 * prof.getXpMultiplier();
+
+        drawString(ms, this.font, title, x, y, 0xFFFFFF);
+        drawString(ms, this.font, "§eур. " + lvl + " §7(" + xp + "/" + max + ")", x, y + 10, 0xFFFFFF);
+        drawBar(ms, x, y + 20, 110, 4, lvl >= 100 ? 1.0f : (float) xp / max, barColor);
+    }
+
+    private void drawBar(MatrixStack ms, int x, int y, int width, int height, float progress, int fillColor) {
+        progress = Math.max(0.0f, Math.min(1.0f, progress));
+        fill(ms, x, y, x + width, y + height, 0xFF555555);
+        fill(ms, x, y, x + (int) (width * progress), y + height, fillColor);
     }
 
     @Override

@@ -1,6 +1,11 @@
 package com.example.examplemod.capability;
 
+import com.example.examplemod.profession.Profession;
+import com.example.examplemod.profession.ProfessionData;
 import net.minecraft.nbt.CompoundNBT;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 public class PlayerLevel implements IPlayerLevel {
     private int level = 1;
@@ -15,6 +20,14 @@ public class PlayerLevel implements IPlayerLevel {
     private int copper = 0, silver = 0, gold = 0;
 
     private CompoundNBT buffs = new CompoundNBT();
+
+    private final Map<Profession, ProfessionData> professions = new EnumMap<>(Profession.class);
+
+    public PlayerLevel() {
+        for (Profession p : Profession.values()) {
+            professions.put(p, new ProfessionData(p.getXpMultiplier()));
+        }
+    }
 
     @Override public int getLevel() { return level; }
     @Override public void setLevel(int level) { this.level = level; }
@@ -75,6 +88,27 @@ public class PlayerLevel implements IPlayerLevel {
         }
     }
 
+    // ===== ПРОФЕССИИ =====
+    private ProfessionData profData(Profession p) {
+        return professions.computeIfAbsent(p, k -> new ProfessionData(p.getXpMultiplier()));
+    }
+
+    @Override public int getProfessionLevel(Profession p) { return profData(p).getLevel(); }
+    @Override public int getProfessionXp(Profession p) { return profData(p).getXp(); }
+    @Override public void setProfessionLevel(Profession p, int level) {
+        CompoundNBT n = new CompoundNBT();
+        n.putInt("level", level);
+        n.putInt("xp", profData(p).getXp());
+        profData(p).readFromNBT(n);
+    }
+    @Override public void setProfessionXp(Profession p, int xp) {
+        CompoundNBT n = new CompoundNBT();
+        n.putInt("level", profData(p).getLevel());
+        n.putInt("xp", xp);
+        profData(p).readFromNBT(n);
+    }
+    @Override public boolean addProfessionXp(Profession p, int amount) { return profData(p).addXp(amount); }
+
     @Override
     public void setBuff(int buffId, long endTime, float power) {
         CompoundNBT b = new CompoundNBT();
@@ -109,6 +143,15 @@ public class PlayerLevel implements IPlayerLevel {
         nbt.putInt("silver", silver);
         nbt.putInt("gold", gold);
         nbt.put("buffs", buffs);
+
+        CompoundNBT profNbt = new CompoundNBT();
+        for (Map.Entry<Profession, ProfessionData> e : professions.entrySet()) {
+            CompoundNBT d = new CompoundNBT();
+            e.getValue().writeToNBT(d);
+            profNbt.put(e.getKey().getId(), d);
+        }
+        nbt.put("professions", profNbt);
+
         return nbt;
     }
 
@@ -132,5 +175,14 @@ public class PlayerLevel implements IPlayerLevel {
         this.silver = nbt.getInt("silver");
         this.gold = nbt.getInt("gold");
         if (nbt.contains("buffs")) this.buffs = nbt.getCompound("buffs");
+
+        if (nbt.contains("professions")) {
+            CompoundNBT profNbt = nbt.getCompound("professions");
+            for (Profession p : Profession.values()) {
+                if (profNbt.contains(p.getId())) {
+                    profData(p).readFromNBT(profNbt.getCompound(p.getId()));
+                }
+            }
+        }
     }
 }

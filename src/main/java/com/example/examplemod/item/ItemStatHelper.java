@@ -19,22 +19,15 @@ public class ItemStatHelper {
 
     public static boolean isWeapon(ItemStack stack) {
         Item item = stack.getItem();
-
-        // 1. Стандартные ванильные классы
         if (item instanceof SwordItem) return true;
         if (item instanceof AxeItem) return true;
         if (item instanceof TridentItem) return true;
-
-        // 2. Tinkers' Construct (безопасная проверка, только если мод загружен)
         if (ModList.get().isLoaded("tconstruct")) {
             if (TinkersCompat.isTinkersWeapon(stack)) return true;
         }
-
-        // 3. Явно исключаем инструменты
         if (item instanceof PickaxeItem) return false;
         if (item instanceof ShovelItem) return false;
         if (item instanceof HoeItem) return false;
-
         return false;
     }
 
@@ -46,18 +39,28 @@ public class ItemStatHelper {
         return isWeapon(stack) || isArmor(stack);
     }
 
+    // НОВОЕ: Проверяем, является ли предмет нашим зельем
+    public static boolean isPotion(ItemStack stack) {
+        return stack.getItem() instanceof RpgPotionItem;
+    }
+
+    public static Rarity rollRandomRarity() {
+        int roll = new Random().nextInt(100);
+        if (roll < 50) return Rarity.COMMON;
+        if (roll < 80) return Rarity.UNCOMMON;
+        if (roll < 95) return Rarity.RARE;
+        if (roll < 99) return Rarity.EPIC;
+        return Rarity.LEGENDARY;
+    }
+
     public static void generateStats(ItemStack stack, int playerLevel) {
+        generateStatsWithRarity(stack, playerLevel, rollRandomRarity());
+    }
+
+    public static void generateStatsWithRarity(ItemStack stack, int playerLevel, Rarity rarity) {
         if (stack.isEmpty() || !isGear(stack)) return;
 
         Random rand = new Random();
-        int roll = rand.nextInt(100);
-        Rarity rarity;
-        if (roll < 50) rarity = Rarity.COMMON;
-        else if (roll < 80) rarity = Rarity.UNCOMMON;
-        else if (roll < 95) rarity = Rarity.RARE;
-        else if (roll < 99) rarity = Rarity.EPIC;
-        else rarity = Rarity.LEGENDARY;
-
         CompoundNBT nbt = stack.getOrCreateTag();
         nbt.putInt("ItemLevel", playerLevel);
         nbt.putInt("RarityLevel", rarity.ordinal());
@@ -92,5 +95,12 @@ public class ItemStatHelper {
         nbt.putInt("StatIntelligence", intel);
         nbt.putInt("StatLuck", luck);
         nbt.putInt("StatVitality", vit);
+    }
+
+    // НОВОЕ: Выдаем зелью уровень и редкость
+    public static void applyPotionRarity(ItemStack stack, int playerLevel, Rarity rarity) {
+        CompoundNBT nbt = stack.getOrCreateTag();
+        nbt.putInt("ItemLevel", playerLevel);
+        nbt.putInt("RarityLevel", rarity.ordinal());
     }
 }
