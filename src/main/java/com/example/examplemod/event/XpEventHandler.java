@@ -31,7 +31,6 @@ public class XpEventHandler {
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             int actualXp = baseXpReward;
-
             if (data.hasBuff(RpgBuffs.XP_BOOST)) {
                 long end = data.getBuffEnd(RpgBuffs.XP_BOOST);
                 if (player.level.getGameTime() < end) {
@@ -51,7 +50,8 @@ public class XpEventHandler {
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                 data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
                                 data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                                data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
+                                data.getStamina(), data.getStaminaRegen(),
+                                data.getCopper(), data.getSilver(), data.getGold())
                 );
             }
         });

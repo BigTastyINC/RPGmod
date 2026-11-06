@@ -47,6 +47,7 @@ versionRange="${forge_version_range}" #mandatory
 ordering="NONE"
 # Side this dependency is applied on - BOTH, CLIENT, or SERVER
 side="BOTH"
+
 # Here's another dependency
 [[dependencies.${mod_id}]]
 modId="minecraft"
@@ -54,4 +55,14 @@ mandatory=true
 # This version range declares a minimum of the current minecraft version up to but not including the next major version
 versionRange="${minecraft_version_range}"
 ordering="NONE"
+side="BOTH"
+
+# ==========================================================
+# НАШ КОД: Мягкая зависимость от Tinkers' Construct
+# ==========================================================
+[[dependencies.${mod_id}]]
+modId="tconstruct"
+mandatory=false
+versionRange="[3.0.0,)"
+ordering="AFTER"
 side="BOTH"

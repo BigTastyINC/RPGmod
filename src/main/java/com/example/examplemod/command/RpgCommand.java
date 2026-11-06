@@ -31,7 +31,7 @@ public class RpgCommand {
                                             data.addXp(amount);
                                             PlayerEventHandler.applyStats(player, data);
                                             player.sendMessage(new StringTextComponent("Добавлено " + amount + " опыта!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
                                     return 1;
@@ -47,7 +47,7 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addStatPoints(amount);
                                             player.sendMessage(new StringTextComponent("§aДобавлено " + amount + " очков!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
                                     return 1;
@@ -63,14 +63,13 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addCoins(amount);
                                             player.sendMessage(new StringTextComponent("§6Добавлено " + amount + " меди!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
                                         });
                                     }
                                     return 1;
                                 })
                         )
                 )
-                // ТЕСТОВАЯ КОМАНДА ДЛЯ ЗЕЛИЙ: /rpg potion mana 10 2
                 .then(Commands.literal("potion")
                         .then(Commands.argument("type", StringArgumentType.string())
                                 .then(Commands.argument("level", IntegerArgumentType.integer(1))
@@ -82,11 +81,8 @@ public class RpgCommand {
                                                     int rarityInt = IntegerArgumentType.getInteger(context, "rarity");
                                                     if (player != null) {
                                                         ItemStack potion;
-                                                        if (type.equalsIgnoreCase("mana")) {
-                                                            potion = new ItemStack(ModItems.MANA_POTION.get());
-                                                        } else {
-                                                            potion = new ItemStack(ModItems.HEALTH_POTION.get());
-                                                        }
+                                                        if (type.equalsIgnoreCase("mana")) potion = new ItemStack(ModItems.MANA_POTION.get());
+                                                        else potion = new ItemStack(ModItems.HEALTH_POTION.get());
                                                         CompoundNBT nbt = potion.getOrCreateTag();
                                                         nbt.putInt("ItemLevel", level);
                                                         nbt.putInt("RarityLevel", Math.min(4, rarityInt));

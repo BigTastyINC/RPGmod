@@ -34,18 +34,20 @@ public class UpgradeStatPacket {
                             case "vitality": data.setVitality(data.getVitality() + 1); success = true; break;
                             case "healthregen": data.setHealthRegen(data.getHealthRegen() + 1); success = true; break;
                             case "manaregen": data.setManaRegen(data.getManaRegen() + 1); success = true; break;
+                            case "staminaregen": data.setStaminaRegen(data.getStaminaRegen() + 1); success = true; break;
                         }
 
                         if (success) {
                             data.setStatPoints(data.getStatPoints() - 1);
                             PlayerEventHandler.applyStats(player, data);
 
-                            // В пакет добавлена data.getStamina()
                             NetworkHandler.INSTANCE.send(
                                     PacketDistributor.PLAYER.with(() -> player),
                                     new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
-                                            data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(),
-                                            data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
+                                            data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                                            data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                                            data.getStamina(), data.getStaminaRegen(),
+                                            data.getCopper(), data.getSilver(), data.getGold())
                             );
                         }
                     }

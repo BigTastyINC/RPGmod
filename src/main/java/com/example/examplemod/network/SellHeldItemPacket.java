@@ -26,6 +26,11 @@ public class SellHeldItemPacket {
                 player.sendMessage(new StringTextComponent("§cВозьмите предмет в руку!"), player.getUUID());
                 return;
             }
+            // Еду продавать нельзя
+            if (held.getItem().isEdible()) {
+                player.sendMessage(new StringTextComponent("§cТорговцы не покупают еду. Её можно только купить."), player.getUUID());
+                return;
+            }
             if (!held.hasTag() || !held.getTag().contains("ItemLevel")) {
                 player.sendMessage(new StringTextComponent("§cЭтот предмет не имеет уровня, торговцы такое не берут!"), player.getUUID());
                 return;
@@ -39,7 +44,8 @@ public class SellHeldItemPacket {
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                 data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(),
                                 data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                                data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                data.getStamina(), data.getStaminaRegen(),
+                                data.getCopper(), data.getSilver(), data.getGold()));
             });
         });
         ctx.get().setPacketHandled(true);

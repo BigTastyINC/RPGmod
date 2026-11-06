@@ -21,13 +21,11 @@ public class BuyItemPacket {
     }
 
     public static void encode(BuyItemPacket msg, PacketBuffer buf) {
-        // ИСПРАВЛЕНО: writeItemStack(stack, false)
         buf.writeItemStack(msg.stack, false);
         buf.writeInt(msg.price);
     }
 
     public static BuyItemPacket decode(PacketBuffer buf) {
-        // ИСПРАВЛЕНО: readItem() вместо readItemStack()
         return new BuyItemPacket(buf.readItem(), buf.readInt());
     }
 
@@ -46,9 +44,10 @@ public class BuyItemPacket {
                 player.sendMessage(new StringTextComponent("§aКуплено: " + msg.stack.getDisplayName().getString() + " за " + msg.price + " меди"), player.getUUID());
                 NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
-                                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(),
-                                data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                                data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                                data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                                data.getStamina(), data.getStaminaRegen(),
+                                data.getCopper(), data.getSilver(), data.getGold()));
             });
         });
         ctx.get().setPacketHandled(true);

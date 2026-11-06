@@ -1,5 +1,6 @@
 package com.example.examplemod.client;
 
+import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.network.BuyItemPacket;
 import com.example.examplemod.network.NetworkHandler;
@@ -40,7 +41,7 @@ public class TradeScreen extends Screen {
     protected void init() {
         super.init();
         int centerX = this.width / 2;
-        int priceButtonY = this.height / 2 - 5;
+        int priceButtonY = this.height / 2 + 5;
 
         for (int i = 0; i < data.prices.size(); i++) {
             final int idx = i;
@@ -52,7 +53,7 @@ public class TradeScreen extends Screen {
                             new BuyItemPacket(data.items.get(idx), price))));
         }
 
-        this.addButton(new Button(centerX - 100, this.height / 2 + 45, 200, 20,
+        this.addButton(new Button(centerX - 100, this.height / 2 + 50, 200, 20,
                 new StringTextComponent("§aПродать предмет из руки"), b -> {
             NetworkHandler.INSTANCE.sendToServer(new SellHeldItemPacket());
         }));
@@ -78,7 +79,7 @@ public class TradeScreen extends Screen {
             ItemStack preview = data.items.get(i);
             CompoundNBT nbt = preview.getOrCreateTag();
             int level = Math.max(1, nbt.getInt("ItemLevel"));
-            int rarity = Math.min(4, nbt.getInt("RarityLevel")); // ← теперь 4, чтобы Легендарный работал
+            int rarity = Math.min(4, nbt.getInt("RarityLevel"));
             Rarity r = Rarity.values()[rarity];
 
             fill(ms, bx + 28, this.height / 2 - 75, bx + 48, this.height / 2 - 55, 0xFF8B8B8B);
@@ -86,8 +87,15 @@ public class TradeScreen extends Screen {
 
             this.itemRenderer.renderAndDecorateItem(preview, bx + 30, this.height / 2 - 73);
 
-            drawCenteredString(ms, this.font, "§eУр." + level, bx + 40, this.height / 2 - 40, 0xFFFFFF);
-            drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, this.height / 2 - 27, 0xFFFFFF);
+            if (preview.getItem().isEdible()) {
+                int buffId = RpgBuffs.getBuffForFood(preview.getItem());
+                drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, this.height / 2 - 42, 0xFFFFFF);
+                drawCenteredString(ms, this.font, "§b" + RpgBuffs.NAMES[buffId], bx + 40, this.height / 2 - 28, 0xFFFFFF);
+                drawCenteredString(ms, this.font, "§7" + RpgBuffs.DURATION_MINUTES[rarity] + " мин", bx + 40, this.height / 2 - 15, 0xFFFFFF);
+            } else {
+                drawCenteredString(ms, this.font, "§eУр." + level, bx + 40, this.height / 2 - 42, 0xFFFFFF);
+                drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, this.height / 2 - 28, 0xFFFFFF);
+            }
         }
 
         PlayerEntity player = Minecraft.getInstance().player;
@@ -96,6 +104,9 @@ public class TradeScreen extends Screen {
             String hint;
             if (held.isEmpty()) {
                 hint = "§7(в руке пусто)";
+            } else if (held.getItem().isEdible()) {
+                // Еда — продавать нельзя
+                hint = "§cЕду продавать нельзя — только покупать";
             } else if (!held.hasTag() || !held.getTag().contains("ItemLevel")) {
                 hint = "§7(у предмета нет уровня — нельзя продать)";
             } else {

@@ -20,9 +20,16 @@ public class ShopUtils {
                 + nbt.getInt("StatIntelligence") + nbt.getInt("StatLuck")
                 + nbt.getInt("StatVitality");
         float matMult = getMaterialMultiplier(stack.getItem());
+
+        // ЕДА И ЗЕЛЬЯ: своя формула
+        if (stack.getItem().isEdible()) {
+            // еда: (level * 5 + rarity * 50) * 2
+            return (level * 5 + rarity * 50) * 2;
+        }
         if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
             return (level * 5 + rarity * 20) * 2;
         }
+
         return (int) ((level * 3 + rarity * 20 + stats * 2) * matMult);
     }
 
@@ -31,6 +38,11 @@ public class ShopUtils {
         int level = Math.max(1, nbt.getInt("ItemLevel"));
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
 
+        // ЕДА: в 3 раза дороже за уровень и в 6 раз за редкость
+        if (stack.getItem().isEdible()) {
+            return level * 30 + rarity * 300;
+        }
+        // ЗЕЛЬЯ: стандартная формула
         if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
             return level * 10 + rarity * 50;
         }
@@ -79,14 +91,14 @@ public class ShopUtils {
     }
 
     private static Item pickItemForMerchant(Random rand, int merchantType) {
-        if (merchantType == 0) { // Оружейник
+        if (merchantType == 0) {
             return pickFrom(rand,
                     Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD,
                     Items.GOLDEN_SWORD, Items.DIAMOND_SWORD,
                     ModItems.SILVER_SWORD.get(), ModItems.COBALT_SWORD.get(),
                     ModItems.MITHRIL_SWORD.get(), ModItems.ADAMANTIUM_SWORD.get(),
                     ModItems.ORICHALCUM_SWORD.get());
-        } else if (merchantType == 1) { // Бронник
+        } else if (merchantType == 1) {
             return pickFrom(rand,
                     Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS,
                     Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
@@ -100,9 +112,16 @@ public class ShopUtils {
                     ModItems.ADAMANTIUM_LEGGINGS.get(), ModItems.ORICHALCUM_LEGGINGS.get(),
                     ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(),
                     ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
-        } else { // Маг и Глава Гильдии (2, 3)
+        } else if (merchantType == 2) {
             return pickFrom(rand,
                     ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get());
+        } else {
+            return pickFrom(rand,
+                    Items.BREAD, Items.COOKIE, Items.BAKED_POTATO, Items.PUMPKIN_PIE,
+                    Items.MUSHROOM_STEW, Items.BEETROOT_SOUP, Items.RABBIT_STEW, Items.SUSPICIOUS_STEW,
+                    Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_MUTTON, Items.COOKED_CHICKEN,
+                    Items.COOKED_RABBIT, Items.COOKED_COD, Items.COOKED_SALMON, Items.DRIED_KELP,
+                    Items.GOLDEN_CARROT, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE, Items.HONEY_BOTTLE);
         }
     }
 
@@ -114,23 +133,24 @@ public class ShopUtils {
         int r = Math.min(rarity, Rarity.values().length - 1);
         nbt.putInt("RarityLevel", r);
 
-        int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));
-
-        int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
-        for (int i = 0; i < totalStats; i++) {
-            switch (rand.nextInt(5)) {
-                case 0: str++; break;
-                case 1: dex++; break;
-                case 2: intel++; break;
-                case 3: luck++; break;
-                case 4: vit++; break;
+        if (!item.isEdible()) {
+            int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));
+            int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
+            for (int i = 0; i < totalStats; i++) {
+                switch (rand.nextInt(5)) {
+                    case 0: str++; break;
+                    case 1: dex++; break;
+                    case 2: intel++; break;
+                    case 3: luck++; break;
+                    case 4: vit++; break;
+                }
             }
+            nbt.putInt("StatStrength", str);
+            nbt.putInt("StatDexterity", dex);
+            nbt.putInt("StatIntelligence", intel);
+            nbt.putInt("StatLuck", luck);
+            nbt.putInt("StatVitality", vit);
         }
-        nbt.putInt("StatStrength", str);
-        nbt.putInt("StatDexterity", dex);
-        nbt.putInt("StatIntelligence", intel);
-        nbt.putInt("StatLuck", luck);
-        nbt.putInt("StatVitality", vit);
         return stack;
     }
 

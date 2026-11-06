@@ -9,10 +9,11 @@ public class PlayerLevel implements IPlayerLevel {
     private int mana = 100;
     private int strength = 1, dexterity = 1, intelligence = 1, luck = 1, vitality = 1;
     private int healthRegen = 0, manaRegen = 0;
-    private int stamina = 100, maxStamina = 100, staminaRegenDelay = 0;
+    private int stamina = 100;
+    private int staminaRegen = 0;
+    private int staminaRegenDelay = 0;
     private int copper = 0, silver = 0, gold = 0;
 
-    // Баффы еды: "b0" -> {end, power}
     private CompoundNBT buffs = new CompoundNBT();
 
     @Override public int getLevel() { return level; }
@@ -36,13 +37,18 @@ public class PlayerLevel implements IPlayerLevel {
     @Override public void setHealthRegen(int value) { this.healthRegen = value; }
     @Override public int getManaRegen() { return manaRegen; }
     @Override public void setManaRegen(int value) { this.manaRegen = value; }
-    @Override public int getMana() { return mana; }
-    @Override public void setMana(int mana) { this.mana = Math.min(mana, getMaxMana()); }
+
     @Override public int getStamina() { return stamina; }
-    @Override public void setStamina(int stamina) { this.stamina = Math.min(stamina, maxStamina); }
-    @Override public int getMaxStamina() { return maxStamina; }
+    @Override public void setStamina(int stamina) { this.stamina = Math.min(stamina, getMaxStamina()); }
+    @Override public int getStaminaRegen() { return staminaRegen; }
+    @Override public void setStaminaRegen(int value) { this.staminaRegen = value; }
     @Override public int getStaminaRegenDelay() { return staminaRegenDelay; }
     @Override public void setStaminaRegenDelay(int delay) { this.staminaRegenDelay = delay; }
+
+    @Override public int getMaxStamina() { return IPlayerLevel.super.getMaxStamina(); }
+
+    @Override public int getMana() { return mana; }
+    @Override public void setMana(int mana) { this.mana = Math.min(mana, getMaxMana()); }
     @Override public int getCopper() { return copper; }
     @Override public void setCopper(int copper) { this.copper = copper; }
     @Override public int getSilver() { return silver; }
@@ -69,7 +75,6 @@ public class PlayerLevel implements IPlayerLevel {
         }
     }
 
-    // ====== БАФФЫ ======
     @Override
     public void setBuff(int buffId, long endTime, float power) {
         CompoundNBT b = new CompoundNBT();
@@ -77,21 +82,11 @@ public class PlayerLevel implements IPlayerLevel {
         b.putFloat("power", power);
         buffs.put("b" + buffId, b);
     }
-    @Override public long getBuffEnd(int buffId) {
-        return buffs.getCompound("b" + buffId).getLong("end");
-    }
-    @Override public float getBuffPower(int buffId) {
-        return buffs.getCompound("b" + buffId).getFloat("power");
-    }
-    @Override public boolean hasBuff(int buffId) {
-        return buffs.contains("b" + buffId);
-    }
-    @Override public void clearBuff(int buffId) {
-        buffs.remove("b" + buffId);
-    }
-    @Override public CompoundNBT getAllBuffs() {
-        return buffs;
-    }
+    @Override public long getBuffEnd(int buffId) { return buffs.getCompound("b" + buffId).getLong("end"); }
+    @Override public float getBuffPower(int buffId) { return buffs.getCompound("b" + buffId).getFloat("power"); }
+    @Override public boolean hasBuff(int buffId) { return buffs.contains("b" + buffId); }
+    @Override public void clearBuff(int buffId) { buffs.remove("b" + buffId); }
+    @Override public CompoundNBT getAllBuffs() { return buffs; }
 
     @Override
     public CompoundNBT serializeNBT() {
@@ -108,6 +103,7 @@ public class PlayerLevel implements IPlayerLevel {
         nbt.putInt("healthRegen", healthRegen);
         nbt.putInt("manaRegen", manaRegen);
         nbt.putInt("stamina", stamina);
+        nbt.putInt("staminaRegen", staminaRegen);
         nbt.putInt("staminaRegenDelay", staminaRegenDelay);
         nbt.putInt("copper", copper);
         nbt.putInt("silver", silver);
@@ -130,6 +126,7 @@ public class PlayerLevel implements IPlayerLevel {
         this.healthRegen = nbt.getInt("healthRegen");
         this.manaRegen = nbt.getInt("manaRegen");
         this.stamina = nbt.contains("stamina") ? nbt.getInt("stamina") : 100;
+        this.staminaRegen = nbt.getInt("staminaRegen");
         this.staminaRegenDelay = nbt.getInt("staminaRegenDelay");
         this.copper = nbt.getInt("copper");
         this.silver = nbt.getInt("silver");

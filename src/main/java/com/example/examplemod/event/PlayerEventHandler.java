@@ -79,9 +79,6 @@ public class PlayerEventHandler {
         if (event.phase != TickEvent.Phase.END || event.player.level.isClientSide) return;
         PlayerEntity player = event.player;
 
-        // ====== ИСПРАВЛЕНИЕ ГОЛОДА ======
-        // Всегда держим голод ровно на 19. Это позволяет есть еду ВСЕГДА,
-        // даже если игрок только что поел. Не даёт умереть с голоду и не блокирует еду.
         if (player.getFoodData().getFoodLevel() != 19) {
             player.getFoodData().setFoodLevel(19);
             player.getFoodData().setSaturation(0);
@@ -91,19 +88,19 @@ public class PlayerEventHandler {
             boolean changed = false;
 
             if (player.tickCount % 20 == 0) {
-                // Скан инвентаря: оружие/броня (статы) и еда (рарность)
                 scanInventory(player, data);
 
-                // Стамина
+                // === СТАМИНА: реген с учётом стата ===
                 if (data.getStaminaRegenDelay() > 0) {
                     data.setStaminaRegenDelay(data.getStaminaRegenDelay() - 20);
                     if (data.getStaminaRegenDelay() < 0) data.setStaminaRegenDelay(0);
                 } else if (data.getStamina() < data.getMaxStamina()) {
-                    data.setStamina(data.getStamina() + 20);
+                    int regenAmount = 20 + data.getStaminaRegen() * 2;
+                    data.setStamina(data.getStamina() + regenAmount);
                     changed = true;
                 }
 
-                // Мана: базовый + бафф
+                // Мана
                 int manaRegenAmount = 1 + data.getManaRegen();
                 if (data.hasBuff(RpgBuffs.MANA_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.MANA_REGEN);
@@ -118,7 +115,7 @@ public class PlayerEventHandler {
                     changed = true;
                 }
 
-                // Здоровье: базовый + бафф
+                // Здоровье
                 float healthRegenAmount = data.getHealthRegen() / 3.0f;
                 if (data.hasBuff(RpgBuffs.HEALTH_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.HEALTH_REGEN);
@@ -270,7 +267,8 @@ public class PlayerEventHandler {
                     new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                             data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
                             data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                            data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
+                            data.getStamina(), data.getStaminaRegen(),
+                            data.getCopper(), data.getSilver(), data.getGold())
             );
         }
     }

@@ -29,17 +29,24 @@ public interface IPlayerLevel {
     int getManaRegen();
     void setManaRegen(int value);
 
+    // ===== СТАМИНА =====
+    int getStamina();
+    void setStamina(int stamina);
+    int getStaminaRegen();
+    void setStaminaRegen(int value);
+    int getStaminaRegenDelay();
+    void setStaminaRegenDelay(int delay);
+
+    // Максимальная стамина зависит от силы: 100 + 3 за каждое очко силы выше 1
+    default int getMaxStamina() {
+        return 100 + (getStrength() - 1) * 3;
+    }
+
     int getMana();
     void setMana(int mana);
     default int getMaxMana() {
         return 100 + (getIntelligence() - 1) * 10;
     }
-
-    int getStamina();
-    void setStamina(int stamina);
-    int getMaxStamina();
-    int getStaminaRegenDelay();
-    void setStaminaRegenDelay(int delay);
 
     int getCopper();
     void setCopper(int copper);
@@ -49,7 +56,6 @@ public interface IPlayerLevel {
     void setGold(int gold);
     void addCoins(int copperAmount);
 
-    // ====== БАФФЫ ЕДЫ ======
     void setBuff(int buffId, long endTime, float power);
     long getBuffEnd(int buffId);
     float getBuffPower(int buffId);

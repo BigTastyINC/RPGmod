@@ -1,7 +1,6 @@
 package com.example.examplemod.item;
 
 import com.example.examplemod.capability.ModCapabilities;
-import com.example.examplemod.event.PlayerEventHandler;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
 import net.minecraft.entity.player.PlayerEntity;
@@ -38,7 +37,6 @@ public class RpgPotionItem extends Item {
             int level = Math.max(1, nbt.getInt("ItemLevel"));
             int rarity = Math.min(4, nbt.getInt("RarityLevel"));
 
-            // Формула: Уровень * 5 * Множитель Редкости
             int amount = (int) (level * 5 * Rarity.values()[rarity].getMultiplier());
 
             if (isMana) {
@@ -51,7 +49,8 @@ public class RpgPotionItem extends Item {
                                 new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                         data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(),
                                         data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(),
-                                        data.getStamina(), data.getCopper(), data.getSilver(), data.getGold()));
+                                        data.getStamina(), data.getStaminaRegen(),
+                                        data.getCopper(), data.getSilver(), data.getGold()));
                     }
                 });
             } else {

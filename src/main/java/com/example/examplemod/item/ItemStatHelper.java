@@ -1,20 +1,56 @@
 package com.example.examplemod.item;
 
+import com.example.examplemod.compat.TinkersCompat;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.AxeItem;
+import net.minecraft.item.HoeItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.PickaxeItem;
+import net.minecraft.item.ShovelItem;
 import net.minecraft.item.SwordItem;
 import net.minecraft.item.TridentItem;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tags.ItemTags;
+import net.minecraftforge.fml.ModList;
 
 import java.util.Random;
 
 public class ItemStatHelper {
 
+    /**
+     * Возвращает true ТОЛЬКО для оружия: мечи, топоры, трезубцы, а также оружие из Tinkers' Construct.
+     * Кирки, лопаты и мотыги — НЕ оружие.
+     */
     public static boolean isWeapon(ItemStack stack) {
-        return stack.getItem() instanceof SwordItem ||
-                stack.getItem() instanceof AxeItem ||
-                stack.getItem() instanceof TridentItem;
+        Item item = stack.getItem();
+
+        // ===== 1. Стандартные ванильные классы =====
+        if (item instanceof SwordItem) return true;
+        if (item instanceof AxeItem) return true;
+        if (item instanceof TridentItem) return true;
+
+        // ===== 2. Кастомные модовые мечи/топоры через теги =====
+        if (item.is(ItemTags.SWORDS)) return true;
+        if (item.is(ItemTags.AXES)) return true;
+
+        // ===== 3. Интеграция с Tinkers' Construct =====
+        // Проверяем, загружен ли мод. Если да - вызываем наш безопасный метод.
+        if (ModList.get().isLoaded("tconstruct")) {
+            if (TinkersCompat.isTinkersWeapon(stack)) {
+                return true;
+            }
+        }
+
+        // ===== 4. Явно исключаем инструменты (на всякий случай) =====
+        if (item instanceof PickaxeItem) return false;
+        if (item instanceof ShovelItem) return false;
+        if (item instanceof HoeItem) return false;
+        if (item.is(ItemTags.PICKAXES)) return false;
+        if (item.is(ItemTags.SHOVELS)) return false;
+        if (item.is(ItemTags.HOES)) return false;
+
+        return false;
     }
 
     public static boolean isArmor(ItemStack stack) {
@@ -29,7 +65,6 @@ public class ItemStatHelper {
         if (stack.isEmpty() || !isGear(stack)) return;
 
         Random rand = new Random();
-
         int roll = rand.nextInt(100);
         Rarity rarity;
         if (roll < 50) rarity = Rarity.COMMON;
@@ -43,15 +78,13 @@ public class ItemStatHelper {
         nbt.putInt("RarityLevel", rarity.ordinal());
 
         int totalStatPoints = (int) (playerLevel * rarity.getMultiplier());
-
         int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
-        boolean isArmorPiece = isArmor(stack);
 
-        for (int i = 0; i < totalStatPoints; i++) {
-            if (isArmorPiece) {
-                // Броня: 6 вариантов, Жизнь выпадает чаще (2 шанса из 6)
-                int statRoll = rand.nextInt(6);
-                switch (statRoll) {
+        if (isArmor(stack)) {
+            // Броня: все 5 статов (жизнь чаще)
+            for (int i = 0; i < totalStatPoints; i++) {
+                int r = rand.nextInt(6);
+                switch (r) {
                     case 0: str++; break;
                     case 1: dex++; break;
                     case 2: intel++; break;
@@ -59,22 +92,17 @@ public class ItemStatHelper {
                     case 4:
                     case 5: vit++; break;
                 }
-            } else {
-                // Оружие: 4 варианта, БЕЗ Жизни
-                int statRoll = rand.nextInt(4);
-                switch (statRoll) {
-                    case 0: str++; break;
-                    case 1: dex++; break;
-                    case 2: intel++; break;
-                    case 3: luck++; break;
-                }
             }
+            if (vit == 0) vit = 1;
+        } else {
+            // Оружие: только Сила и Ловкость
+            for (int i = 0; i < totalStatPoints; i++) {
+                if (rand.nextBoolean()) str++;
+                else dex++;
+            }
+            if (str == 0) str = 1;
+            if (dex == 0) dex = 1;
         }
-
-        // Гарантируем, что оружие получит хотя бы Силу и Ловкость
-        if (str == 0 && !isArmorPiece) str = 1;
-        if (dex == 0 && !isArmorPiece) dex = 1;
-        if (vit == 0 && isArmorPiece) vit = 1;
 
         nbt.putInt("StatStrength", str);
         nbt.putInt("StatDexterity", dex);
