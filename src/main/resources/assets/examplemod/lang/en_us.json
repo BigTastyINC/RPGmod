@@ -52,5 +52,7 @@
   "item.examplemod.orichalcum_leggings": "§2Orichalcum Leggings",
   "item.examplemod.orichalcum_boots": "§2Orichalcum Boots",
 
-  "itemGroup.examplemod": "RPG Mod"
+  "itemGroup.examplemod": "RPG Mod",
+  "item.examplemod.mana_potion": "Mana Potion",
+  "item.examplemod.health_potion": "Health Potion"
 }

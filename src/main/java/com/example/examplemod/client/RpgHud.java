@@ -1,5 +1,6 @@
 package com.example.examplemod.client;
 
+import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.ModCapabilities;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
@@ -9,6 +10,8 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.Map;
 
 @Mod.EventBusSubscriber(modid = "examplemod", value = Dist.CLIENT)
 public class RpgHud {
@@ -28,8 +31,6 @@ public class RpgHud {
         if (event.getType() != RenderGameOverlayEvent.ElementType.TEXT) return;
 
         Minecraft mc = Minecraft.getInstance();
-
-        // ИСПРАВЛЕНО: screen вместо currentScreen
         if (mc.screen != null) return;
 
         PlayerEntity player = mc.player;
@@ -42,6 +43,7 @@ public class RpgHud {
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
 
+            // ===== ВЕРХНИЙ ЛЕВЫЙ УГОЛ =====
             final int leftX = 10;
             final int startY = 10;
 
@@ -60,6 +62,7 @@ public class RpgHud {
             int maxMana = data.getMaxMana();
             drawBar(ms, mc, leftX, startY + 36, 100, 10, (float)mana/maxMana, 0xFF555555, 0xFF0000FF, mana + " / " + maxMana);
 
+            // ===== НИЗ ПО ЦЕНТРУ: ОПЫТ =====
             int currentLevel = data.getLevel();
             int currentXp = data.getXp();
             int xpNeeded = currentLevel * 100;
@@ -72,12 +75,42 @@ public class RpgHud {
             String xpText = currentXp + " / " + xpNeeded;
             drawBar(ms, mc, centerX - (xpBarWidth / 2), xpBarY, xpBarWidth, xpBarHeight, progress, 0xFF555555, 0xFF00FF00, xpText);
 
+            // ===== ПРАВЫЙ НИЖНИЙ УГОЛ: УРОВЕНЬ =====
             String bigLevelText = "" + currentLevel;
             int levelWidth = mc.font.width(bigLevelText);
             int levelX = width - levelWidth - 10;
             int levelY = height - 20;
             mc.font.drawShadow(ms, bigLevelText, levelX, levelY, 0xFFFF55);
         });
+
+        // ===== ПРАВЫЙ ВЕРХНИЙ УГОЛ: БАФФЫ (не зависит от Capability) =====
+        renderBuffs(ms, mc, player, width);
+    }
+
+    private static void renderBuffs(MatrixStack ms, Minecraft mc, PlayerEntity player, int width) {
+        Map<Integer, Long> buffs = ClientBuffTracker.getActiveBuffs();
+        long now = player.level.getGameTime();
+        int y = 10;
+        int x = width - 10;
+
+        for (Map.Entry<Integer, Long> entry : buffs.entrySet()) {
+            int buffId = entry.getKey();
+            long end = entry.getValue();
+            if (now >= end) continue;
+
+            long remainingTicks = end - now;
+            long totalSeconds = remainingTicks / 20;
+            long minutes = totalSeconds / 60;
+            long seconds = totalSeconds % 60;
+
+            String timeStr = String.format("%02d:%02d", minutes, seconds);
+            String text = RpgBuffs.NAMES[buffId] + " " + timeStr;
+
+            int textWidth = mc.font.width(text);
+            mc.font.drawShadow(ms, text, x - textWidth, y, 0xFFFFFF);
+            AbstractGui.fill(ms, x - textWidth, y + 10, x, y + 11, 0xFFAA55FF);
+            y += 13;
+        }
     }
 
     private static void drawBar(MatrixStack ms, Minecraft mc, int x, int y, int width, int height, float progress, int bgColor, int fillColor, String text) {

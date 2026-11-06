@@ -62,4 +62,11 @@ public class ModItems {
     public static final RegistryObject<Item> ORICHALCUM_CHESTPLATE = ITEMS.register("orichalcum_chestplate", () -> new ArmorItem(ModArmorMaterial.ORICHALCUM, EquipmentSlotType.CHEST, new Item.Properties().tab(ModItemGroup.INSTANCE)));
     public static final RegistryObject<Item> ORICHALCUM_LEGGINGS = ITEMS.register("orichalcum_leggings", () -> new ArmorItem(ModArmorMaterial.ORICHALCUM, EquipmentSlotType.LEGS, new Item.Properties().tab(ModItemGroup.INSTANCE)));
     public static final RegistryObject<Item> ORICHALCUM_BOOTS = ITEMS.register("orichalcum_boots", () -> new ArmorItem(ModArmorMaterial.ORICHALCUM, EquipmentSlotType.FEET, new Item.Properties().tab(ModItemGroup.INSTANCE)));
+
+    // --- ЗЕЛЬЯ ---
+    public static final RegistryObject<Item> MANA_POTION = ITEMS.register("mana_potion",
+            () -> new RpgPotionItem(true, new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
+
+    public static final RegistryObject<Item> HEALTH_POTION = ITEMS.register("health_potion",
+            () -> new RpgPotionItem(false, new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
 }

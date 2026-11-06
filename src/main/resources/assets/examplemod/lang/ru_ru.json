@@ -52,5 +52,7 @@
   "item.examplemod.orichalcum_leggings": "§2Орихалковые поножи",
   "item.examplemod.orichalcum_boots": "§2Орихалковые ботинки",
 
-  "itemGroup.examplemod": "RPG Мод"
+  "itemGroup.examplemod": "RPG Мод",
+  "item.examplemod.mana_potion": "Зелье Маны",
+  "item.examplemod.health_potion": "Зелье Здоровья"
 }

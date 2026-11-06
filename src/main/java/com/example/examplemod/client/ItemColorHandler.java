@@ -1,6 +1,7 @@
 package com.example.examplemod.client;
 
 import com.example.examplemod.item.ModItems;
+import com.example.examplemod.item.RpgPotionItem;
 import net.minecraft.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ColorHandlerEvent;
@@ -17,10 +18,8 @@ public class ItemColorHandler {
     public static void registerItemColors(ColorHandlerEvent.Item event) {
         List<Item> colorableItems = new ArrayList<>();
 
-        // Собираем все предметы, которые надо красить
         for (net.minecraftforge.fml.RegistryObject<Item> item : ModItems.ITEMS.getEntries()) {
             String name = item.getId().getPath();
-            // Если это меч, топор или броня
             if (name.endsWith("_sword") || name.endsWith("_axe") || name.contains("_helmet") || name.contains("_chestplate") || name.contains("_leggings") || name.contains("_boots")) {
                 colorableItems.add(item.get());
             }
@@ -37,5 +36,17 @@ public class ItemColorHandler {
 
             return -1;
         }, colorableItems.toArray(new Item[0]));
+
+        // Покраска зелий
+        event.getItemColors().register((stack, tintIndex) -> {
+            if (stack.getItem() instanceof RpgPotionItem) {
+                if (((RpgPotionItem) stack.getItem()).isManaPotion()) {
+                    return 0xFF0055FF; // Синий
+                } else {
+                    return 0xFFFF0000; // Красный
+                }
+            }
+            return -1;
+        }, ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get());
     }
 }

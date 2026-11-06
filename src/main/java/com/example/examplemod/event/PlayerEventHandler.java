@@ -1,5 +1,6 @@
 package com.example.examplemod.event;
 
+import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.IPlayerLevel;
 import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.capability.PlayerLevelProvider;
@@ -43,17 +44,14 @@ public class PlayerEventHandler {
         }
     }
 
-    // --- Трата стамины при ударе ---
     @SubscribeEvent
     public static void onPlayerAttack(AttackEntityEvent event) {
         PlayerEntity player = event.getPlayer();
         if (!player.level.isClientSide) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                int staminaCost = 15;
-
-                if (data.getStamina() >= staminaCost) {
-                    data.setStamina(data.getStamina() - staminaCost);
-                    data.setStaminaRegenDelay(40); // Задержка регенерации 2 секунды
+                if (data.getStamina() >= 15) {
+                    data.setStamina(data.getStamina() - 15);
+                    data.setStaminaRegenDelay(40);
                     syncData(player, data);
                 } else {
                     event.setCanceled(true);
@@ -68,7 +66,6 @@ public class PlayerEventHandler {
         if (event.getPlayer().level.isClientSide) return;
         PlayerEntity player = event.getPlayer();
         ItemStack craftedItem = event.getCrafting();
-
         if (ItemStatHelper.isGear(craftedItem)) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                 ItemStatHelper.generateStats(craftedItem, data.getLevel());
@@ -80,11 +77,12 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.level.isClientSide) return;
-
         PlayerEntity player = event.player;
 
-        // Отключаем голод (держим на уровне 19, чтобы можно было есть)
-        if (player.getFoodData().getFoodLevel() < 19) {
+        // ====== ИСПРАВЛЕНИЕ ГОЛОДА ======
+        // Всегда держим голод ровно на 19. Это позволяет есть еду ВСЕГДА,
+        // даже если игрок только что поел. Не даёт умереть с голоду и не блокирует еду.
+        if (player.getFoodData().getFoodLevel() != 19) {
             player.getFoodData().setFoodLevel(19);
             player.getFoodData().setSaturation(0);
         }
@@ -92,56 +90,77 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             boolean changed = false;
 
-            // ВСЕ РЕГЕНЕРАЦИИ ПРОИСХОДЯТ РАЗ В СЕКУНДУ (20 тиков)
             if (player.tickCount % 20 == 0) {
+                // Скан инвентаря: оружие/броня (статы) и еда (рарность)
+                scanInventory(player, data);
 
-                // Логика регенерации стамины
+                // Стамина
                 if (data.getStaminaRegenDelay() > 0) {
                     data.setStaminaRegenDelay(data.getStaminaRegenDelay() - 20);
-                    if (data.getStaminaRegenDelay() < 0) {
-                        data.setStaminaRegenDelay(0);
-                    }
+                    if (data.getStaminaRegenDelay() < 0) data.setStaminaRegenDelay(0);
                 } else if (data.getStamina() < data.getMaxStamina()) {
                     data.setStamina(data.getStamina() + 20);
                     changed = true;
                 }
 
-                // Регенерация маны
+                // Мана: базовый + бафф
+                int manaRegenAmount = 1 + data.getManaRegen();
+                if (data.hasBuff(RpgBuffs.MANA_REGEN)) {
+                    long end = data.getBuffEnd(RpgBuffs.MANA_REGEN);
+                    if (player.level.getGameTime() < end) {
+                        manaRegenAmount += (int) Math.ceil(data.getBuffPower(RpgBuffs.MANA_REGEN));
+                    } else {
+                        data.clearBuff(RpgBuffs.MANA_REGEN);
+                    }
+                }
                 if (data.getMana() < data.getMaxMana()) {
-                    data.setMana(data.getMana() + 1 + data.getManaRegen());
+                    data.setMana(data.getMana() + manaRegenAmount);
                     changed = true;
                 }
 
-                // Регенерация здоровья
-                if (player.getHealth() < player.getMaxHealth() && player.getHealth() > 0) {
-                    if (data.getHealthRegen() > 0) {
-                        // --- ИЗМЕНЕНИЕ ЗДЕСЬ: Делим на 3, чтобы не было бессмертия ---
-                        float healAmount = data.getHealthRegen() / 3.0F;
-                        player.heal(healAmount);
-                        changed = true;
+                // Здоровье: базовый + бафф
+                float healthRegenAmount = data.getHealthRegen() / 3.0f;
+                if (data.hasBuff(RpgBuffs.HEALTH_REGEN)) {
+                    long end = data.getBuffEnd(RpgBuffs.HEALTH_REGEN);
+                    if (player.level.getGameTime() < end) {
+                        healthRegenAmount += data.getBuffPower(RpgBuffs.HEALTH_REGEN);
+                    } else {
+                        data.clearBuff(RpgBuffs.HEALTH_REGEN);
                     }
+                }
+                if (healthRegenAmount > 0 && player.getHealth() < player.getMaxHealth()) {
+                    player.heal(healthRegenAmount);
+                    changed = true;
                 }
 
                 applyStats(player, data);
-                checkInventoryForGear(player, data);
             }
 
-            if (changed) {
-                syncData(player, data);
-            }
+            if (changed) syncData(player, data);
         });
     }
 
-    private static void checkInventoryForGear(PlayerEntity player, IPlayerLevel data) {
+    private static void scanInventory(PlayerEntity player, IPlayerLevel data) {
         if (!(player instanceof ServerPlayerEntity)) return;
+        ServerPlayerEntity sp = (ServerPlayerEntity) player;
+        boolean modified = false;
 
-        for (int i = 0; i < player.inventory.getContainerSize(); i++) {
-            ItemStack stack = player.inventory.getItem(i);
+        for (int i = 0; i < sp.inventory.getContainerSize(); i++) {
+            ItemStack stack = sp.inventory.getItem(i);
+
             if (ItemStatHelper.isGear(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
                 ItemStatHelper.generateStats(stack, data.getLevel());
-                ((ServerPlayerEntity) player).containerMenu.broadcastChanges();
+                modified = true;
+            }
+
+            if (FoodBuffHandler.isPreparedFood(stack.getItem())
+                    && (!stack.hasTag() || !stack.getTag().contains("RarityLevel"))) {
+                FoodBuffHandler.assignRarityIfFood(stack);
+                modified = true;
             }
         }
+
+        if (modified) sp.containerMenu.broadcastChanges();
     }
 
     @SubscribeEvent
@@ -149,21 +168,8 @@ public class PlayerEventHandler {
         if (event.isWasDeath()) {
             event.getOriginal().getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(oldData -> {
                 event.getPlayer().getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(newData -> {
-                    newData.setLevel(oldData.getLevel());
-                    newData.setXp(oldData.getXp());
-                    newData.setStatPoints(oldData.getStatPoints());
-                    newData.setStrength(oldData.getStrength());
-                    newData.setDexterity(oldData.getDexterity());
-                    newData.setIntelligence(oldData.getIntelligence());
-                    newData.setLuck(oldData.getLuck());
-                    newData.setVitality(oldData.getVitality());
-                    newData.setMana(oldData.getMana());
-                    newData.setHealthRegen(oldData.getHealthRegen());
-                    newData.setManaRegen(oldData.getManaRegen());
-                    newData.setStamina(oldData.getStamina());
-                    newData.setCopper(oldData.getCopper());
-                    newData.setSilver(oldData.getSilver());
-                    newData.setGold(oldData.getGold());
+                    CompoundNBT saved = oldData.serializeNBT();
+                    newData.deserializeNBT(saved);
                     applyStats(event.getPlayer(), newData);
                 });
             });
@@ -192,23 +198,17 @@ public class PlayerEventHandler {
 
     private static void giveBook(PlayerEntity player) {
         if (player instanceof ServerPlayerEntity) {
-            ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
+            ServerPlayerEntity sp = (ServerPlayerEntity) player;
             boolean hasBook = false;
-            for (int i = 0; i < serverPlayer.inventory.getContainerSize(); i++) {
-                if (serverPlayer.inventory.getItem(i).getItem() == ModItems.STATS_BOOK.get()) {
-                    hasBook = true;
-                    break;
-                }
+            for (int i = 0; i < sp.inventory.getContainerSize(); i++) {
+                if (sp.inventory.getItem(i).getItem() == ModItems.STATS_BOOK.get()) { hasBook = true; break; }
             }
-            if (!hasBook) {
-                serverPlayer.inventory.add(new ItemStack(ModItems.STATS_BOOK.get()));
-            }
+            if (!hasBook) sp.inventory.add(new ItemStack(ModItems.STATS_BOOK.get()));
         }
     }
 
     public static void applyStats(PlayerEntity player, IPlayerLevel data) {
         if (player == null) return;
-
         int totalStr = data.getStrength();
         int totalDex = data.getDexterity();
         int totalVit = data.getVitality();
@@ -221,10 +221,9 @@ public class PlayerEventHandler {
                 totalDex += nbt.getInt("StatDexterity");
             }
         }
-
-        for (ItemStack armorStack : player.inventory.armor) {
-            if (ItemStatHelper.isArmor(armorStack) && armorStack.hasTag()) {
-                CompoundNBT nbt = armorStack.getTag();
+        for (ItemStack armor : player.inventory.armor) {
+            if (ItemStatHelper.isArmor(armor) && armor.hasTag()) {
+                CompoundNBT nbt = armor.getTag();
                 if (nbt != null) {
                     totalStr += nbt.getInt("StatStrength");
                     totalDex += nbt.getInt("StatDexterity");
@@ -238,8 +237,8 @@ public class PlayerEventHandler {
             AttributeModifier existing = maxHealth.getModifier(HEALTH_MODIFIER_ID);
             if (existing != null) maxHealth.removeModifier(existing);
             if (totalVit > 1) {
-                double bonusHealth = (totalVit - 1) * 2.0;
-                maxHealth.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER_ID, "rpg_health", bonusHealth, AttributeModifier.Operation.ADDITION));
+                double bonus = (totalVit - 1) * 2.0;
+                maxHealth.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER_ID, "rpg_health", bonus, AttributeModifier.Operation.ADDITION));
             }
         }
 
@@ -248,8 +247,8 @@ public class PlayerEventHandler {
             AttributeModifier existing = attackDamage.getModifier(DAMAGE_MODIFIER_ID);
             if (existing != null) attackDamage.removeModifier(existing);
             if (totalStr > 1) {
-                double bonusDamage = (totalStr - 1) * 0.5;
-                attackDamage.addPermanentModifier(new AttributeModifier(DAMAGE_MODIFIER_ID, "rpg_strength", bonusDamage, AttributeModifier.Operation.ADDITION));
+                double bonus = (totalStr - 1) * 0.5;
+                attackDamage.addPermanentModifier(new AttributeModifier(DAMAGE_MODIFIER_ID, "rpg_strength", bonus, AttributeModifier.Operation.ADDITION));
             }
         }
 
@@ -258,8 +257,8 @@ public class PlayerEventHandler {
             AttributeModifier existing = attackSpeed.getModifier(ATTACK_SPEED_MODIFIER_ID);
             if (existing != null) attackSpeed.removeModifier(existing);
             if (totalDex > 1) {
-                double bonusSpeed = (totalDex - 1) * 0.1;
-                attackSpeed.addPermanentModifier(new AttributeModifier(ATTACK_SPEED_MODIFIER_ID, "rpg_dexterity", bonusSpeed, AttributeModifier.Operation.ADDITION));
+                double bonus = (totalDex - 1) * 0.1;
+                attackSpeed.addPermanentModifier(new AttributeModifier(ATTACK_SPEED_MODIFIER_ID, "rpg_dexterity", bonus, AttributeModifier.Operation.ADDITION));
             }
         }
     }
@@ -269,8 +268,9 @@ public class PlayerEventHandler {
             NetworkHandler.INSTANCE.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
                     new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
-                            data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(),
-                            data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
+                            data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                            data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                            data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
             );
         }
     }

@@ -2,6 +2,7 @@ package com.example.examplemod.command;
 
 import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.event.PlayerEventHandler;
+import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
@@ -10,9 +11,6 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.merchant.villager.VillagerEntity;
-import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -72,6 +70,35 @@ public class RpgCommand {
                                 })
                         )
                 )
+                // ТЕСТОВАЯ КОМАНДА ДЛЯ ЗЕЛИЙ: /rpg potion mana 10 2
+                .then(Commands.literal("potion")
+                        .then(Commands.argument("type", StringArgumentType.string())
+                                .then(Commands.argument("level", IntegerArgumentType.integer(1))
+                                        .then(Commands.argument("rarity", IntegerArgumentType.integer(0, 4))
+                                                .executes(context -> {
+                                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                                    String type = StringArgumentType.getString(context, "type");
+                                                    int level = IntegerArgumentType.getInteger(context, "level");
+                                                    int rarityInt = IntegerArgumentType.getInteger(context, "rarity");
+                                                    if (player != null) {
+                                                        ItemStack potion;
+                                                        if (type.equalsIgnoreCase("mana")) {
+                                                            potion = new ItemStack(ModItems.MANA_POTION.get());
+                                                        } else {
+                                                            potion = new ItemStack(ModItems.HEALTH_POTION.get());
+                                                        }
+                                                        CompoundNBT nbt = potion.getOrCreateTag();
+                                                        nbt.putInt("ItemLevel", level);
+                                                        nbt.putInt("RarityLevel", Math.min(4, rarityInt));
+                                                        player.inventory.add(potion);
+                                                        player.sendMessage(new StringTextComponent("§aЗелье выдано!"), player.getUUID());
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
+                        )
+                )
                 .then(Commands.literal("weapon")
                         .then(Commands.argument("level", IntegerArgumentType.integer(1))
                                 .then(Commands.argument("rarity", IntegerArgumentType.integer(0, 4))
@@ -125,26 +152,24 @@ public class RpgCommand {
                                     ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
                                     String type = StringArgumentType.getString(context, "type");
                                     if (player != null) {
-                                        VillagerEntity npc = new VillagerEntity(EntityType.VILLAGER, player.level);
-                                        // ИСПРАВЛЕНО: setPos вместо setPosition
+                                        net.minecraft.entity.merchant.villager.VillagerEntity npc = new net.minecraft.entity.merchant.villager.VillagerEntity(net.minecraft.entity.EntityType.VILLAGER, player.level);
                                         npc.setPos(player.getX() + 2, player.getY(), player.getZ() + 2);
-
                                         switch (type.toLowerCase()) {
                                             case "guild":
                                                 npc.setCustomName(new StringTextComponent("§6Глава Гильдии"));
-                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.NITWIT));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(net.minecraft.entity.merchant.villager.VillagerProfession.NITWIT));
                                                 break;
                                             case "weapon":
                                                 npc.setCustomName(new StringTextComponent("§cОружейник"));
-                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.WEAPONSMITH));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(net.minecraft.entity.merchant.villager.VillagerProfession.WEAPONSMITH));
                                                 break;
                                             case "armor":
                                                 npc.setCustomName(new StringTextComponent("§7Бронник"));
-                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.ARMORER));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(net.minecraft.entity.merchant.villager.VillagerProfession.ARMORER));
                                                 break;
                                             case "mage":
                                                 npc.setCustomName(new StringTextComponent("§5Маг"));
-                                                npc.setVillagerData(npc.getVillagerData().setProfession(VillagerProfession.CLERIC));
+                                                npc.setVillagerData(npc.getVillagerData().setProfession(net.minecraft.entity.merchant.villager.VillagerProfession.CLERIC));
                                                 break;
                                             default:
                                                 player.sendMessage(new StringTextComponent("§cТипы: guild, weapon, armor, mage"), player.getUUID());

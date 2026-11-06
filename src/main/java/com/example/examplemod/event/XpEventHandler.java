@@ -1,5 +1,6 @@
 package com.example.examplemod.event;
 
+import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
@@ -23,33 +24,34 @@ public class XpEventHandler {
         MobEntity killedMob = (MobEntity) event.getEntityLiving();
 
         int mobLevel = killedMob.getPersistentData().getInt("RpgMobLevel");
-        if (mobLevel <= 0 && killedMob.hasCustomName()) {
-            String name = killedMob.getCustomName().getString();
-            if (name.startsWith("[Lvl ")) {
-                int endIndex = name.indexOf("]");
-                if (endIndex > 5) {
-                    try { mobLevel = Integer.parseInt(name.substring(5, endIndex)); } catch (NumberFormatException ignored) {}
-                }
-            }
-        }
         if (mobLevel <= 0) mobLevel = 1;
 
         final int finalMobLevel = mobLevel;
-        int xpReward = finalMobLevel * 10;
-        int coinReward = finalMobLevel * 2;
+        final int baseXpReward = finalMobLevel * 10;
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-            data.addXp(xpReward);
-            data.addCoins(coinReward);
+            int actualXp = baseXpReward;
+
+            if (data.hasBuff(RpgBuffs.XP_BOOST)) {
+                long end = data.getBuffEnd(RpgBuffs.XP_BOOST);
+                if (player.level.getGameTime() < end) {
+                    actualXp = (int) (actualXp * (1.0f + data.getBuffPower(RpgBuffs.XP_BOOST)));
+                } else {
+                    data.clearBuff(RpgBuffs.XP_BOOST);
+                }
+            }
+
+            data.addXp(actualXp);
+            data.addCoins(finalMobLevel * 2);
             PlayerEventHandler.applyStats(player, data);
 
             if (player instanceof ServerPlayerEntity) {
-                // В пакет добавлена data.getStamina()
                 NetworkHandler.INSTANCE.send(
                         PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
-                                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(),
-                                data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
+                                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                                data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                                data.getStamina(), data.getCopper(), data.getSilver(), data.getGold())
                 );
             }
         });

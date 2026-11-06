@@ -20,6 +20,9 @@ public class ShopUtils {
                 + nbt.getInt("StatIntelligence") + nbt.getInt("StatLuck")
                 + nbt.getInt("StatVitality");
         float matMult = getMaterialMultiplier(stack.getItem());
+        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
+            return (level * 5 + rarity * 20) * 2;
+        }
         return (int) ((level * 3 + rarity * 20 + stats * 2) * matMult);
     }
 
@@ -27,6 +30,11 @@ public class ShopUtils {
         CompoundNBT nbt = stack.getOrCreateTag();
         int level = Math.max(1, nbt.getInt("ItemLevel"));
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
+
+        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
+            return level * 10 + rarity * 50;
+        }
+
         float matMult = getMaterialMultiplier(stack.getItem());
         int basePrice = level * 15 + rarity * 150;
         return (int) (basePrice * matMult);
@@ -71,14 +79,14 @@ public class ShopUtils {
     }
 
     private static Item pickItemForMerchant(Random rand, int merchantType) {
-        if (merchantType == 0) {
+        if (merchantType == 0) { // Оружейник
             return pickFrom(rand,
                     Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD,
                     Items.GOLDEN_SWORD, Items.DIAMOND_SWORD,
                     ModItems.SILVER_SWORD.get(), ModItems.COBALT_SWORD.get(),
                     ModItems.MITHRIL_SWORD.get(), ModItems.ADAMANTIUM_SWORD.get(),
                     ModItems.ORICHALCUM_SWORD.get());
-        } else {
+        } else if (merchantType == 1) { // Бронник
             return pickFrom(rand,
                     Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS,
                     Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
@@ -92,6 +100,9 @@ public class ShopUtils {
                     ModItems.ADAMANTIUM_LEGGINGS.get(), ModItems.ORICHALCUM_LEGGINGS.get(),
                     ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(),
                     ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
+        } else { // Маг и Глава Гильдии (2, 3)
+            return pickFrom(rand,
+                    ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get());
         }
     }
 
@@ -103,7 +114,6 @@ public class ShopUtils {
         int r = Math.min(rarity, Rarity.values().length - 1);
         nbt.putInt("RarityLevel", r);
 
-        // ИСПРАВЛЕНО: Убрал множитель 0.5 и добавил Math.max(1, ...), чтобы у предмета всегда был хотя бы 1 стат
         int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));
 
         int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
