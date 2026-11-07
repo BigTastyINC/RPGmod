@@ -63,31 +63,29 @@ public class RpgHud extends AbstractGui {
             int spacing = 3;
             int barHeightOnScreen = (int)(29 * scaleY);
 
-            // ===== 1. ЗДОРОВЬЕ (Красный градиент) =====
+            // ===== 1. ЗДОРОВЬЕ =====
             int hp = (int) player.getHealth();
             int maxHp = (int) player.getMaxHealth();
-            drawCustomBar(ms, mc, leftX, startY, scaleX, scaleY, (float)hp/maxHp,
-                    0x77FF5555, 0x77AA0000, "HP: " + hp + " / " + maxHp);
+            drawCustomBar(ms, mc, leftX, startY, scaleX, scaleY, (float)hp/maxHp, 0x77FF5555, 0x77AA0000, "HP: " + hp + " / " + maxHp);
 
-            // ===== 2. СТАМИНА (Желто-оранжевый градиент) =====
+            // ===== 2. СТАМИНА =====
             int stamina = data.getStamina();
             int maxStamina = data.getMaxStamina();
-            drawCustomBar(ms, mc, leftX, startY + barHeightOnScreen + spacing, scaleX, scaleY, (float)stamina/maxStamina,
-                    0x77FFDD55, 0x77AA7700, "ST: " + stamina + " / " + maxStamina);
+            drawCustomBar(ms, mc, leftX, startY + barHeightOnScreen + spacing, scaleX, scaleY, (float)stamina/maxStamina, 0x77FFDD55, 0x77AA7700, "ST: " + stamina + " / " + maxStamina);
 
-            // ===== 3. МАНА (Синий градиент) =====
+            // ===== 3. МАНА =====
             int mana = data.getMana();
             int maxMana = data.getMaxMana();
-            drawCustomBar(ms, mc, leftX, startY + (barHeightOnScreen + spacing) * 2, scaleX, scaleY, (float)mana/maxMana,
-                    0x775555FF, 0x770000AA, "MP: " + mana + " / " + maxMana);
+            drawCustomBar(ms, mc, leftX, startY + (barHeightOnScreen + spacing) * 2, scaleX, scaleY, (float)mana/maxMana, 0x775555FF, 0x770000AA, "MP: " + mana + " / " + maxMana);
 
-            // ===== 4. ОПЫТ (ТЕКСТ) =====
+            // ===== 4. ОПЫТ (ОПУЩЕН К ХОТБАРУ) =====
             int currentLevel = data.getLevel();
             int currentXp = data.getXp();
             int xpNeeded = currentLevel * 100;
 
             String xpText = "§aXP: " + currentXp + " / " + xpNeeded;
-            mc.font.drawShadow(ms, xpText, centerX - (mc.font.width(xpText) / 2f), height - 45, 0xFFFFFF);
+            // ИЗМЕНЕНО: height - 32 (прямо над хотбаром)
+            mc.font.drawShadow(ms, xpText, centerX - (mc.font.width(xpText) / 2f), height - 32, 0xFFFFFF);
 
             // ===== УРОВЕНЬ =====
             String levelStr = "Lvl. " + currentLevel;
@@ -135,7 +133,6 @@ public class RpgHud extends AbstractGui {
         RenderSystem.defaultBlendFunc();
         RenderSystem.shadeModel(7425);
 
-        // ИСПРАВЛЕНО: используем метод .pose() вместо .matrix или .getMatrix()
         Matrix4f matrix = ms.last().pose();
 
         BufferBuilder buffer = Tessellator.getInstance().getBuilder();

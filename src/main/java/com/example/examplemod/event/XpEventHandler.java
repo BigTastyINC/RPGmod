@@ -27,7 +27,6 @@ public class XpEventHandler {
         int mobLevel = killedMob.getPersistentData().getInt("RpgMobLevel");
         if (mobLevel <= 0) mobLevel = 1;
 
-        // Получаем редкость моба (0 = Common, 1 = Leader, 2 = Lord)
         int rarityIndex = killedMob.getPersistentData().getInt("RpgMobRarity");
         MobRarity[] rarities = MobRarity.values();
         MobRarity rarity = rarities[Math.min(rarityIndex, rarities.length - 1)];

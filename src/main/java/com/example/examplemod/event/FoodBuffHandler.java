@@ -29,7 +29,6 @@ public class FoodBuffHandler {
         return 4;
     }
 
-    // Список "приготовленной" еды, которая заслуживает рарности
     public static boolean isPreparedFood(Item item) {
         return item == Items.BREAD
                 || item == Items.COOKIE
@@ -53,7 +52,6 @@ public class FoodBuffHandler {
                 || item == Items.HONEY_BOTTLE;
     }
 
-    // Назначаем рарность только если её ещё нет и это "приготовленная" еда
     public static void assignRarityIfFood(ItemStack stack) {
         if (stack.isEmpty()) return;
         if (stack.hasTag() && stack.getTag().contains("RarityLevel")) return;
@@ -63,14 +61,12 @@ public class FoodBuffHandler {
         nbt.putInt("RarityLevel", rollRarity());
     }
 
-    // Для крафта (хлеб, печенье, пироги)
     @SubscribeEvent
     public static void onCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (event.getPlayer().level.isClientSide) return;
         assignRarityIfFood(event.getCrafting());
     }
 
-    // При поедании
     @SubscribeEvent
     public static void onFoodEaten(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntityLiving() instanceof ServerPlayerEntity)) return;
@@ -80,7 +76,6 @@ public class FoodBuffHandler {
         ItemStack stack = event.getItem();
         if (!isPreparedFood(stack.getItem())) return;
 
-        // Если при поедании рарности всё ещё нет — назначаем (последний шанс)
         assignRarityIfFood(stack);
 
         int rarity = stack.hasTag() && stack.getTag().contains("RarityLevel")
@@ -89,8 +84,16 @@ public class FoodBuffHandler {
 
         int buffId = RpgBuffs.getBuffForFood(stack.getItem());
 
+        // НОВОЕ: Вычисляем бонусные минуты от уровня предмета
+        int itemLevel = stack.hasTag() && stack.getTag().contains("ItemLevel")
+                ? stack.getTag().getInt("ItemLevel")
+                : 1;
+        int bonusMinutes = itemLevel / 40;
+
         final float basePower = RpgBuffs.BASE_POWER[buffId] * RpgBuffs.RARITY_MULTIPLIER[rarity];
-        final int durationTicks = RpgBuffs.DURATION_MINUTES[rarity] * 60 * 20;
+        // НОВОЕ: Добавляем бонусные минуты к базовой длительности
+        final int totalMinutes = RpgBuffs.DURATION_MINUTES[rarity] + bonusMinutes;
+        final int durationTicks = totalMinutes * 60 * 20;
         final long endTime = player.level.getGameTime() + durationTicks;
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
@@ -109,7 +112,7 @@ public class FoodBuffHandler {
 
         player.sendMessage(new StringTextComponent(
                         "§6Еда дала бафф: §e" + RpgBuffs.NAMES[buffId]
-                                + " §7(" + RpgBuffs.DURATION_MINUTES[rarity] + " мин)"),
+                                + " §7(" + totalMinutes + " мин)"),
                 player.getUUID());
     }
 }

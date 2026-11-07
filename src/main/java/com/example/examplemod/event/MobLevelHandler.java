@@ -2,6 +2,8 @@ package com.example.examplemod.event;
 
 import com.example.examplemod.entity.MobRarity;
 import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.util.text.StringTextComponent;
@@ -23,26 +25,44 @@ public class MobLevelHandler {
         MobEntity mob = (MobEntity) event.getEntity();
         if (mob.hasCustomName()) return;
 
+        // Жители (NPC) без редкости
+        if (mob instanceof VillagerEntity) {
+            double dxV = mob.getX() - 0.0;
+            double dyV = mob.getY() - 64.0;
+            double dzV = mob.getZ() - 0.0;
+            double distanceV = Math.sqrt(dxV * dxV + dyV * dyV + dzV * dzV);
+            int levelV = 1 + (int) (distanceV / 45.0);
+
+            String finalNameV = "§7[Lvl " + levelV + "] " + mob.getName().getString();
+            mob.setCustomName(new StringTextComponent(finalNameV));
+            mob.setCustomNameVisible(true);
+            mob.getPersistentData().putInt("RpgMobLevel", levelV);
+            return;
+        }
+
         double dx = mob.getX() - 0.0;
         double dy = mob.getY() - 64.0;
         double dz = mob.getZ() - 0.0;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        // ИЗМЕНЕНО: 1 уровень за 45 блоков (4500 блоков = ~100 уровень)
         int baseLevel = 1 + (int) (distance / 45.0);
-
         Random rand = new Random();
-        int randomVariance = rand.nextInt(3) - 1;
-        int finalLevel = Math.max(1, baseLevel + randomVariance);
+        int finalLevel = Math.max(1, baseLevel + rand.nextInt(3) - 1);
 
-        int roll = rand.nextInt(100);
         MobRarity rarity;
-        if (roll < 85) {
-            rarity = MobRarity.COMMON;
-        } else if (roll < 95) {
-            rarity = MobRarity.LEADER;
+
+        if (mob instanceof AnimalEntity) {
+            int roll = rand.nextInt(100);
+            if (roll < 60) rarity = MobRarity.COMMON;
+            else if (roll < 85) rarity = MobRarity.UNCOMMON;
+            else if (roll < 95) rarity = MobRarity.RARE;
+            else if (roll < 99) rarity = MobRarity.EPIC;
+            else rarity = MobRarity.LEGENDARY;
         } else {
-            rarity = MobRarity.LORD;
+            int roll = rand.nextInt(100);
+            if (roll < 85) rarity = MobRarity.COMMON;
+            else if (roll < 95) rarity = MobRarity.LEADER;
+            else rarity = MobRarity.LORD;
         }
 
         applyLevelToMob(mob, finalLevel, rarity);
@@ -65,7 +85,24 @@ public class MobLevelHandler {
         }
 
         String levelPrefix = "§7[Lvl " + level + "] ";
-        String finalName = levelPrefix + rarity.getPrefix() + mob.getName().getString();
+        String finalName;
+
+        // Имя моба
+        String mobName = mob.getName().getString();
+
+        if (mob instanceof AnimalEntity) {
+            // Животные: [Lvl 20] Лошадь ★★
+            finalName = levelPrefix + mobName + rarity.getStars();
+        } else {
+            // Монстры: [Lvl 20] Зомби [Лорд]
+            String prefix = rarity.getPrefix();
+            if (!prefix.isEmpty()) {
+                finalName = levelPrefix + mobName + " " + prefix;
+            } else {
+                finalName = levelPrefix + mobName;
+            }
+        }
+
         mob.setCustomName(new StringTextComponent(finalName));
         mob.setCustomNameVisible(true);
 

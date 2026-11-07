@@ -3,21 +3,22 @@ package com.example.examplemod.profession;
 import net.minecraft.nbt.CompoundNBT;
 
 public class ProfessionData {
-    public static final int MAX_LEVEL = 100;
+    private final int maxLevel;
+    private final int xpMultiplier;
 
     private int level = 1;
     private int xp = 0;
-    private final int xpMultiplier;
 
-    public ProfessionData(int xpMultiplier) {
+    public ProfessionData(int xpMultiplier, int maxLevel) {
         this.xpMultiplier = xpMultiplier;
+        this.maxLevel = maxLevel;
     }
 
     public int getLevel() { return level; }
     public int getXp() { return xp; }
-    public boolean isMaxLevel() { return level >= MAX_LEVEL; }
+    public int getMaxLevel() { return maxLevel; }
+    public boolean isMaxLevel() { return level >= maxLevel; }
 
-    // Формула: уровень * 25 * коэффициент (3 для крафтов, 1 для остальных)
     public int getXpForNextLevel() { return level * 25 * xpMultiplier; }
 
     public boolean addXp(int amount) {
@@ -39,7 +40,7 @@ public class ProfessionData {
     }
 
     public void readFromNBT(CompoundNBT nbt) {
-        this.level = Math.max(1, Math.min(MAX_LEVEL, nbt.getInt("level")));
+        this.level = Math.max(1, Math.min(maxLevel, nbt.getInt("level")));
         this.xp = Math.max(0, nbt.getInt("xp"));
     }
 }

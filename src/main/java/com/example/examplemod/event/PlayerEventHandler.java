@@ -41,6 +41,14 @@ public class PlayerEventHandler {
     private static final UUID DAMAGE_MODIFIER_ID = UUID.fromString("a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d");
     private static final UUID ATTACK_SPEED_MODIFIER_ID = UUID.fromString("b1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d");
 
+    // НОВОЕ: Хелпер для начисления опыта с учетом баффа
+    public static int getProfessionXpWithBonus(PlayerEntity player, IPlayerLevel data, int baseXp) {
+        if (data.hasBuff(RpgBuffs.PROFESSION_LUCK) && player.level.getGameTime() < data.getBuffEnd(RpgBuffs.PROFESSION_LUCK)) {
+            return (int)(baseXp * 1.5f); // +50%
+        }
+        return baseXp;
+    }
+
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof PlayerEntity) {
@@ -50,7 +58,6 @@ public class PlayerEventHandler {
         }
     }
 
-    // Блокируем выброс только Книги Статов (Книгу Заклинаний мы убрали)
     @SubscribeEvent
     public static void onItemToss(ItemTossEvent event) {
         ItemStack stack = event.getEntityItem().getItem();
@@ -95,7 +102,7 @@ public class PlayerEventHandler {
 
             if (ItemStatHelper.isPotion(craftedItem)) {
                 Profession prof = Profession.ALCHEMIST;
-                int xpGain = 50;
+                int xpGain = getProfessionXpWithBonus(player, data, 50); // ИСПОЛЬЗУЕМ ХЕЛПЕР
 
                 boolean leveledUp = data.addProfessionXp(prof, xpGain);
                 int profLevel = data.getProfessionLevel(prof);
@@ -121,7 +128,7 @@ public class PlayerEventHandler {
 
             boolean isWeapon = ItemStatHelper.isWeapon(craftedItem);
             Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
-            int xpGain = isWeapon ? 100 : 50;
+            int xpGain = getProfessionXpWithBonus(player, data, isWeapon ? 100 : 50); // ИСПОЛЬЗУЕМ ХЕЛПЕР
 
             boolean leveledUp = data.addProfessionXp(prof, xpGain);
             int profLevel = data.getProfessionLevel(prof);
@@ -133,7 +140,7 @@ public class PlayerEventHandler {
                     "§aСоздано: " + rarity.getColor() + "[" + rarity.getName() + "]"
                             + " §7ур. " + data.getLevel()
                             + " §8| §7" + prof.getDisplayName() + ": §e" + profLevel
-                            + (profLevel >= ProfessionData.MAX_LEVEL ? " §6(МАКС)" : "")
+                            + (profLevel >= prof.getMaxLevel() ? " §6(МАКС)" : "")
             ), false);
 
             if (leveledUp) {
@@ -259,7 +266,7 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             applyStats(player, data);
             syncData(player, data);
-            giveBook(player); // Выдаем только книгу статов
+            giveBook(player);
         });
     }
 

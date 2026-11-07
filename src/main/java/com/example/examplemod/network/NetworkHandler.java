@@ -22,6 +22,6 @@ public class NetworkHandler {
         INSTANCE.registerMessage(id++, SellHeldItemPacket.class, SellHeldItemPacket::encode, SellHeldItemPacket::decode, SellHeldItemPacket::handle);
         INSTANCE.registerMessage(id++, OpenSpellBookGuiPacket.class, OpenSpellBookGuiPacket::encode, OpenSpellBookGuiPacket::decode, OpenSpellBookGuiPacket::handle);
         INSTANCE.registerMessage(id++, SellSlotsPacket.class, SellSlotsPacket::encode, SellSlotsPacket::decode, SellSlotsPacket::handle);
-        // OpenShopPacket УДАЛЕН, так как мы теперь используем стандартный NetworkHooks.openGui
+        INSTANCE.registerMessage(id++, SyncBuffPacket.class, SyncBuffPacket::encode, SyncBuffPacket::decode, SyncBuffPacket::handle); // НОВЫЙ ПАКЕТ
     }
 }

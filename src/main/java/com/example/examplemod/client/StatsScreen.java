@@ -19,7 +19,6 @@ import java.util.List;
 public class StatsScreen extends Screen {
 
     private static final ResourceLocation BOOK_TEXTURE = new ResourceLocation("examplemod", "textures/gui/stats_book.png");
-
     private final List<Button> plusButtons = new ArrayList<>();
 
     public StatsScreen() {
@@ -31,7 +30,6 @@ public class StatsScreen extends Screen {
         super.init();
         int centerX = this.width / 2;
         int centerY = this.height / 2;
-
         plusButtons.clear();
 
         int buttonX = centerX - 35;
@@ -57,29 +55,22 @@ public class StatsScreen extends Screen {
     @Override
     public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         this.renderBackground(matrixStack);
-
         int centerX = this.width / 2;
         int centerY = this.height / 2;
 
         Minecraft.getInstance().getTextureManager().bind(BOOK_TEXTURE);
         blit(matrixStack, centerX - 256, centerY - 128, 0, 0, 512, 256, 512, 256);
 
-        // Заголовки
         drawCenteredString(matrixStack, this.font, "§6Характеристики", centerX - 70, centerY - 95, 0xFFFFFF);
         drawCenteredString(matrixStack, this.font, "§6Профессии", centerX + 70, centerY - 95, 0xFFFFFF);
 
         PlayerEntity player = Minecraft.getInstance().player;
         if (player != null) {
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-
                 int points = getStatPoints();
-                // Очки подняты чуть выше (centerY - 86)
                 drawCenteredString(matrixStack, this.font, "§eОчки: " + points, centerX - 70, centerY - 86, 0xFFFFFF);
 
-                // Прячем плюсики, если очков нет
-                for (Button b : plusButtons) {
-                    b.visible = points > 0;
-                }
+                for (Button b : plusButtons) b.visible = points > 0;
 
                 int textX = centerX - 110;
                 int textStartY = centerY - 70;
@@ -122,9 +113,11 @@ public class StatsScreen extends Screen {
         int xp = data.getProfessionXp(prof);
         int max = lvl * 25 * prof.getXpMultiplier();
 
+        float progress = (lvl >= prof.getMaxLevel()) ? 1.0f : (float) xp / max;
+
         drawString(ms, this.font, title, x, y, 0xFFFFFF);
         drawString(ms, this.font, "§eур. " + lvl + " §7(" + xp + "/" + max + ")", x, y + 10, 0xFFFFFF);
-        drawBar(ms, x, y + 20, 110, 4, lvl >= 100 ? 1.0f : (float) xp / max, barColor);
+        drawBar(ms, x, y + 20, 110, 4, progress, barColor);
     }
 
     private void drawBar(MatrixStack ms, int x, int y, int width, int height, float progress, int fillColor) {

@@ -32,11 +32,15 @@ public class ClientBuffTracker {
         int durationTicks = RpgBuffs.DURATION_MINUTES[rarity] * 60 * 20;
         long endTime = player.level.getGameTime() + durationTicks;
 
-        // Если бафф ещё активен — берём максимальное время
         if (buffEndTimes.containsKey(buffId) && buffEndTimes.get(buffId) > player.level.getGameTime()) {
             long oldEnd = buffEndTimes.get(buffId);
             if (oldEnd > endTime) endTime = oldEnd;
         }
+        buffEndTimes.put(buffId, endTime);
+    }
+
+    // НОВОЕ: Метод для добавления баффа из пакета
+    public static void addBuffLocally(int buffId, long endTime) {
         buffEndTimes.put(buffId, endTime);
     }
 

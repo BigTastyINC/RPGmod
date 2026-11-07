@@ -61,6 +61,9 @@ public class NpcSpawnHandler {
 
         int level = calculateLevel(villager);
 
+        // СОХРАНЯЕМ УРОВЕНЬ NPC В ЕГО ПАМЯТЬ
+        villager.getPersistentData().putInt("RpgNpcLevel", level);
+
         int type = RANDOM.nextInt(4);
         String npcBaseName;
         switch (type) {
@@ -104,7 +107,6 @@ public class NpcSpawnHandler {
         double dz = villager.getZ() - 0.0;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        // ИЗМЕНЕНО: 1 уровень за 45 блоков (4500 блоков = ~100 уровень)
         return Math.max(1, 1 + (int) (distance / 45.0));
     }
 }

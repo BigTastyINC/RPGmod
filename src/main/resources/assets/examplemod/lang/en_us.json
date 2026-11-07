@@ -57,5 +57,6 @@
   "key.categories.examplemod": "RPG Mod",
 
   "item.examplemod.spell_tome": "Spell Tome",
-  "item.examplemod.spell_book": "Spell Book"
+  "item.examplemod.spell_book": "Spell Book",
+  "item.examplemod.luck_potion": "Profession Luck Potion"
 }

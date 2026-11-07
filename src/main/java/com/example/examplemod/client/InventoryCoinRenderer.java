@@ -30,32 +30,56 @@ public class InventoryCoinRenderer {
         InventoryScreen inv = (InventoryScreen) event.getGui();
         int left = inv.getGuiLeft();
         int top = inv.getGuiTop();
-
         MatrixStack ms = event.getMatrixStack();
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-            // Координаты в левом нижнем углу инвентаря
-            int startX = left + 10;
-            int startY = top + 166 + 5;
+            int startX = left + 85;
+            int startY = top + 168;
 
-            int iconSize = 6; // Уменьшили иконку в 3 раза (было 16)
-            int spacing = 30; // Расстояние между монетками
+            float scale = 0.5f;
+            int spacing = 28;
 
-            // === МЕДЬ ===
-            mc.getTextureManager().bind(COPPER_ICON);
-            AbstractGui.blit(ms, startX, startY, 0, 0, iconSize, iconSize, 16, 16);
-            // Сдвигаем текст вправо на размер иконки + 2 пикселя и чуть вверх для центрирования
-            mc.font.drawShadow(ms, "" + data.getCopper(), startX + iconSize + 2, startY - 1, 0xFFAA00);
+            // === НОВОЕ: РИСУЕМ ФОН ПОД МОНЕТЫ ===
+            int bgX = startX - 4;
+            int bgY = startY - 4;
+            int bgWidth = 88;
+            int bgHeight = 18;
 
-            // === СЕРЕБРО ===
-            mc.getTextureManager().bind(SILVER_ICON);
-            AbstractGui.blit(ms, startX + spacing, startY, 0, 0, iconSize, iconSize, 16, 16);
-            mc.font.drawShadow(ms, "" + data.getSilver(), startX + spacing + iconSize + 2, startY - 1, 0xAAAAAA);
+            // Темный фон
+            AbstractGui.fill(ms, bgX, bgY, bgX + bgWidth, bgY + bgHeight, 0xFF373737);
+            // Светлая рамка (сверху и слева)
+            AbstractGui.fill(ms, bgX, bgY, bgX + bgWidth, bgY + 1, 0xFF8B8B8B);
+            AbstractGui.fill(ms, bgX, bgY, bgX + 1, bgY + bgHeight, 0xFF8B8B8B);
+            // Темная рамка (снизу и справа)
+            AbstractGui.fill(ms, bgX, bgY + bgHeight - 1, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
+            AbstractGui.fill(ms, bgX + bgWidth - 1, bgY, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
 
-            // === ЗОЛОТО ===
+            // === 1. ЗОЛОТО ===
+            ms.pushPose();
+            ms.translate(startX, startY, 0);
+            ms.scale(scale, scale, 1.0f);
             mc.getTextureManager().bind(GOLD_ICON);
-            AbstractGui.blit(ms, startX + (spacing * 2), startY, 0, 0, iconSize, iconSize, 16, 16);
-            mc.font.drawShadow(ms, "" + data.getGold(), startX + (spacing * 2) + iconSize + 2, startY - 1, 0xFFFF55);
+            AbstractGui.blit(ms, 0, 0, 0, 0, 16, 16, 16, 16);
+            ms.popPose();
+            mc.font.drawShadow(ms, "" + data.getGold(), startX + 10, startY, 0xFFFF55);
+
+            // === 2. СЕРЕБРО ===
+            ms.pushPose();
+            ms.translate(startX + spacing, startY, 0);
+            ms.scale(scale, scale, 1.0f);
+            mc.getTextureManager().bind(SILVER_ICON);
+            AbstractGui.blit(ms, 0, 0, 0, 0, 16, 16, 16, 16);
+            ms.popPose();
+            mc.font.drawShadow(ms, "" + data.getSilver(), startX + spacing + 10, startY, 0xAAAAAA);
+
+            // === 3. МЕДЬ ===
+            ms.pushPose();
+            ms.translate(startX + (spacing * 2), startY, 0);
+            ms.scale(scale, scale, 1.0f);
+            mc.getTextureManager().bind(COPPER_ICON);
+            AbstractGui.blit(ms, 0, 0, 0, 0, 16, 16, 16, 16);
+            ms.popPose();
+            mc.font.drawShadow(ms, "" + data.getCopper(), startX + (spacing * 2) + 10, startY, 0xFFAA00);
         });
     }
 }

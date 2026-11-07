@@ -37,14 +37,30 @@ public class NpcInteractHandler {
         else if (name.contains("Глава Гильдии")) merchantType = 3;
         else return;
 
-        // ИСПРАВЛЕНО: Отменяем стандартный клик по NPC на обеих сторонах
         event.setCanceled(true);
         event.setCancellationResult(net.minecraft.util.ActionResultType.SUCCESS);
 
-        // А код открытия магазина выполняем ТОЛЬКО на сервере
         if (event.getPlayer().level.isClientSide) return;
         if (!(event.getPlayer() instanceof ServerPlayerEntity)) return;
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
+
+        // 1. Пытаемся взять уровень из памяти
+        int npcLevel = villager.getPersistentData().getInt("RpgNpcLevel");
+
+        // 2. Если памяти нет (старый NPC), парсим имя "[Lvl 139] Маг"
+        if (npcLevel <= 0) {
+            if (name.startsWith("[Lvl ")) {
+                int end = name.indexOf("]");
+                if (end > 5) {
+                    try {
+                        npcLevel = Integer.parseInt(name.substring(5, end));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        // 3. Защита от нуля
+        if (npcLevel <= 0) npcLevel = 1;
 
         long timeWindow = player.level.getGameTime() / REFRESH_TIME_TICKS;
         long seed = villager.getUUID().getMostSignificantBits() ^ (timeWindow * 31);
@@ -53,10 +69,16 @@ public class NpcInteractHandler {
         List<ItemStack> items = new ArrayList<>();
         List<Integer> prices = new ArrayList<>();
 
+        final int finalNpcLevel = npcLevel;
+
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             for (int i = 0; i < 5; i++) {
-                int level = Math.max(1, data.getLevel() + rand.nextInt(21) - 10);
-                int rarity = rand.nextInt(100) < 7 ? 4 : rand.nextInt(4);
+                // Используем уровень NPC
+                int level = Math.max(1, finalNpcLevel + rand.nextInt(21) - 10);
+
+                // Шанс на Эпик растет с уровнем NPC
+                int epicChance = Math.min(20, 7 + (finalNpcLevel / 10));
+                int rarity = rand.nextInt(100) < epicChance ? 4 : rand.nextInt(4);
 
                 ItemStack stack = ShopUtils.generateItemForMerchant(rand, merchantType, level, rarity);
                 int price = ShopUtils.calcBuyPrice(stack);

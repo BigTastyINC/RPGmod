@@ -2,6 +2,8 @@ package com.example.examplemod.shop;
 
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
+import com.example.examplemod.item.SpellTomeItem;
+import com.example.examplemod.spells.Spell;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -11,7 +13,6 @@ import java.util.Random;
 
 public class ShopUtils {
 
-    // Красивый формат цены (медь -> серебро -> золото)
     public static String formatPrice(int copper) {
         if (copper < 100) return copper + "м";
         int s = copper / 100;
@@ -26,8 +27,19 @@ public class ShopUtils {
     }
 
     public static int calcSellPrice(ItemStack stack) {
+        // НОВОЕ: Зелье Удачи продается Магу за 1 серебро (100 меди)
+        if (stack.getItem() == ModItems.LUCK_POTION.get()) {
+            return 100;
+        }
+
+        // Томы продаются по фиксированной цене
+        if (stack.getItem() instanceof SpellTomeItem) {
+            return 500;
+        }
+
         CompoundNBT nbt = stack.getTag();
-        if (nbt == null || !nbt.contains("ItemLevel")) return 5;
+        if (nbt == null || !nbt.contains("ItemLevel")) return 2;
+
         int level = nbt.getInt("ItemLevel");
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
         int stats = nbt.getInt("StatStrength") + nbt.getInt("StatDexterity")
@@ -35,7 +47,6 @@ public class ShopUtils {
                 + nbt.getInt("StatVitality");
         float matMult = getMaterialMultiplier(stack.getItem());
 
-        // ЕДА И ЗЕЛЬЯ: своя формула
         if (stack.getItem().isEdible()) {
             return (level * 5 + rarity * 50) * 2;
         }
@@ -43,7 +54,6 @@ public class ShopUtils {
             return (level * 5 + rarity * 20) * 2;
         }
 
-        // НОВОЕ: Цены на продажу кристаллов
         if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get()) return (level * 2 + rarity * 10);
         if (stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get()) return (level * 5 + rarity * 25);
         if (stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) return (level * 10 + rarity * 60);
@@ -52,20 +62,33 @@ public class ShopUtils {
     }
 
     public static int calcBuyPrice(ItemStack stack) {
+        // НОВОЕ: Маг продает Зелье Удачи за 3 золотых (30 000 меди)
+        if (stack.getItem() == ModItems.LUCK_POTION.get()) {
+            return 30000;
+        }
+
+        if (stack.getItem() instanceof SpellTomeItem) {
+            CompoundNBT nbt = stack.getOrCreateTag();
+            int spellLevel = nbt.getInt("SpellLevel");
+
+            int price = 10000;
+            for (int i = 0; i < spellLevel; i++) {
+                price *= 10;
+            }
+            return price;
+        }
+
         CompoundNBT nbt = stack.getOrCreateTag();
         int level = Math.max(1, nbt.getInt("ItemLevel"));
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
 
-        // ЕДА: в 3 раза дороже за уровень и в 6 раз за редкость
         if (stack.getItem().isEdible()) {
             return level * 30 + rarity * 300;
         }
-        // ЗЕЛЬЯ: стандартная формула
         if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
             return level * 10 + rarity * 50;
         }
 
-        // НОВОЕ: Цены на покупку кристаллов
         if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get()) return (level * 4 + rarity * 20);
         if (stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get()) return (level * 10 + rarity * 60);
         if (stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) return (level * 20 + rarity * 150);
@@ -136,9 +159,11 @@ public class ShopUtils {
                     ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(),
                     ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
         } else if (merchantType == 2) {
-            // Маг продает зелья и кристаллы
+            // Маг продает зелья, кристаллы и Томы. ДОБАВИЛИ ЗЕЛЬЕ УДАЧИ
             return pickFrom(rand, ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get(),
-                    ModItems.SMALL_MAGIC_CRYSTAL.get(), ModItems.MEDIUM_MAGIC_CRYSTAL.get(), ModItems.LARGE_MAGIC_CRYSTAL.get());
+                    ModItems.LUCK_POTION.get(), // <--- НОВОЕ ЗЕЛЬЕ
+                    ModItems.SMALL_MAGIC_CRYSTAL.get(), ModItems.MEDIUM_MAGIC_CRYSTAL.get(), ModItems.LARGE_MAGIC_CRYSTAL.get(),
+                    ModItems.SPELL_TOME.get());
         } else {
             return pickFrom(rand,
                     Items.BREAD, Items.COOKIE, Items.BAKED_POTATO, Items.PUMPKIN_PIE,
@@ -157,8 +182,14 @@ public class ShopUtils {
         int r = Math.min(rarity, Rarity.values().length - 1);
         nbt.putInt("RarityLevel", r);
 
-        if (!item.isEdible() && item != ModItems.SMALL_MAGIC_CRYSTAL.get()
-                && item != ModItems.MEDIUM_MAGIC_CRYSTAL.get() && item != ModItems.LARGE_MAGIC_CRYSTAL.get()) {
+        if (item instanceof SpellTomeItem) {
+            Spell[] spells = Spell.values();
+            Spell spell = spells[rand.nextInt(spells.length)];
+            nbt.putString("SpellId", spell.getId());
+            nbt.putInt("SpellLevel", spell.getDefaultLevel());
+        } else if (!item.isEdible() && item != ModItems.SMALL_MAGIC_CRYSTAL.get()
+                && item != ModItems.MEDIUM_MAGIC_CRYSTAL.get() && item != ModItems.LARGE_MAGIC_CRYSTAL.get()
+                && item != ModItems.LUCK_POTION.get()) { // Не даем зелью удачи случайные статы
             int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));
             int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
             for (int i = 0; i < totalStats; i++) {

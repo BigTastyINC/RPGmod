@@ -81,4 +81,8 @@ public class ModItems {
 
     public static final RegistryObject<Item> HEALTH_POTION = ITEMS.register("health_potion",
             () -> new RpgPotionItem(false, new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
+
+    // НОВОЕ: ЗОЛОТОЕ ЗЕЛЬЕ
+    public static final RegistryObject<Item> LUCK_POTION = ITEMS.register("luck_potion",
+            () -> new LuckPotionItem(new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
 }

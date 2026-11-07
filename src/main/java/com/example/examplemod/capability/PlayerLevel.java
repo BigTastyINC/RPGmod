@@ -5,7 +5,6 @@ import com.example.examplemod.profession.ProfessionData;
 import net.minecraft.nbt.CompoundNBT;
 
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
 
 public class PlayerLevel implements IPlayerLevel {
@@ -14,15 +13,16 @@ public class PlayerLevel implements IPlayerLevel {
     private int healthRegen = 0, manaRegen = 0, stamina = 100, staminaRegen = 0, staminaRegenDelay = 0;
     private int copper = 0, silver = 0, gold = 0;
     private CompoundNBT buffs = new CompoundNBT();
+
+    private int mageRank = 0, mageXp = 0;
+    private final Map<String, Integer> knownSpells = new java.util.HashMap<>();
+
     private final Map<Profession, ProfessionData> professions = new EnumMap<>(Profession.class);
 
-    // НОВОЕ: Магия
-    private int mageRank = 0;
-    private int mageXp = 0;
-    private final Map<String, Integer> knownSpells = new HashMap<>();
-
     public PlayerLevel() {
-        for (Profession p : Profession.values()) professions.put(p, new ProfessionData(p.getXpMultiplier()));
+        for (Profession p : Profession.values()) {
+            professions.put(p, new ProfessionData(p.getXpMultiplier(), p.getMaxLevel()));
+        }
     }
 
     @Override public int getLevel() { return level; } @Override public void setLevel(int level) { this.level = level; }
@@ -45,7 +45,7 @@ public class PlayerLevel implements IPlayerLevel {
     @Override public int getGold() { return gold; } @Override public void setGold(int gold) { this.gold = gold; }
     @Override public void addCoins(int copperAmount) { this.copper += copperAmount; if (this.copper >= 100) { this.silver += this.copper / 100; this.copper = this.copper % 100; } if (this.silver >= 100) { this.gold += this.silver / 100; this.silver = this.silver % 100; } }
     @Override public void addXp(int amount) { this.xp += amount; int xpNeeded = this.level * 100; while (this.xp >= xpNeeded) { this.xp -= xpNeeded; this.level++; this.statPoints += 3; xpNeeded = this.level * 100; } }
-    private ProfessionData profData(Profession p) { return professions.computeIfAbsent(p, k -> new ProfessionData(p.getXpMultiplier())); }
+    private ProfessionData profData(Profession p) { return professions.computeIfAbsent(p, k -> new ProfessionData(p.getXpMultiplier(), p.getMaxLevel())); }
     @Override public int getProfessionLevel(Profession p) { return profData(p).getLevel(); }
     @Override public int getProfessionXp(Profession p) { return profData(p).getXp(); }
     @Override public void setProfessionLevel(Profession p, int level) { CompoundNBT n = new CompoundNBT(); n.putInt("level", level); n.putInt("xp", profData(p).getXp()); profData(p).readFromNBT(n); }
@@ -58,19 +58,14 @@ public class PlayerLevel implements IPlayerLevel {
     @Override public void clearBuff(int buffId) { buffs.remove("b" + buffId); }
     @Override public CompoundNBT getAllBuffs() { return buffs; }
 
-    // === НОВОЕ: ЛОГИКА МАГИИ ===
     @Override public int getMageRank() { return mageRank; }
     @Override public void setMageRank(int rank) { this.mageRank = Math.max(0, Math.min(5, rank)); }
     @Override public int getMageXp() { return mageXp; }
     @Override public void setMageXp(int xp) { this.mageXp = xp; }
-
-    @Override
-    public void addMageXp(int amount) {
-        if (mageRank >= 5) return; // Максимальный ранг
+    @Override public void addMageXp(int amount) {
+        if (mageRank >= 5) return;
         this.mageXp += amount;
-        // Формула: 0->1 = 500 xp, 1->2 = 1000 xp, 2->3 = 2000 xp, 3->4 = 4000 xp, 4->5 = 8000 xp
         int xpNeeded = 500 * (int)Math.pow(2, mageRank);
-
         while (mageRank < 5 && this.mageXp >= xpNeeded) {
             this.mageXp -= xpNeeded;
             this.mageRank++;
@@ -78,7 +73,6 @@ public class PlayerLevel implements IPlayerLevel {
         }
         if (mageRank >= 5) this.mageXp = 0;
     }
-
     @Override public Map<String, Integer> getKnownSpells() { return knownSpells; }
     @Override public void learnSpell(String spellId, int level) { knownSpells.put(spellId, level); }
     @Override public int getSpellLevel(String spellId) { return knownSpells.getOrDefault(spellId, -1); }
@@ -93,21 +87,16 @@ public class PlayerLevel implements IPlayerLevel {
         nbt.putInt("staminaRegenDelay", staminaRegenDelay); nbt.putInt("copper", copper); nbt.putInt("silver", silver);
         nbt.putInt("gold", gold); nbt.put("buffs", buffs);
 
+        nbt.putInt("mageRank", mageRank); nbt.putInt("mageXp", mageXp);
+        CompoundNBT spellsNbt = new CompoundNBT();
+        for (Map.Entry<String, Integer> entry : knownSpells.entrySet()) spellsNbt.putInt(entry.getKey(), entry.getValue());
+        nbt.put("knownSpells", spellsNbt);
+
         CompoundNBT profNbt = new CompoundNBT();
         for (Map.Entry<Profession, ProfessionData> e : professions.entrySet()) {
             CompoundNBT d = new CompoundNBT(); e.getValue().writeToNBT(d); profNbt.put(e.getKey().getId(), d);
         }
         nbt.put("professions", profNbt);
-
-        // Магия NBT
-        nbt.putInt("mageRank", mageRank);
-        nbt.putInt("mageXp", mageXp);
-        CompoundNBT spellsNbt = new CompoundNBT();
-        for (Map.Entry<String, Integer> entry : knownSpells.entrySet()) {
-            spellsNbt.putInt(entry.getKey(), entry.getValue());
-        }
-        nbt.put("knownSpells", spellsNbt);
-
         return nbt;
     }
 
@@ -121,19 +110,16 @@ public class PlayerLevel implements IPlayerLevel {
         this.staminaRegenDelay = nbt.getInt("staminaRegenDelay"); this.copper = nbt.getInt("copper"); this.silver = nbt.getInt("silver"); this.gold = nbt.getInt("gold");
         if (nbt.contains("buffs")) this.buffs = nbt.getCompound("buffs");
 
-        if (nbt.contains("professions")) {
-            CompoundNBT profNbt = nbt.getCompound("professions");
-            for (Profession p : Profession.values()) if (profNbt.contains(p.getId())) profData(p).readFromNBT(profNbt.getCompound(p.getId()));
-        }
-
-        this.mageRank = nbt.getInt("mageRank");
-        this.mageXp = nbt.getInt("mageXp");
+        this.mageRank = nbt.getInt("mageRank"); this.mageXp = nbt.getInt("mageXp");
         this.knownSpells.clear();
         if (nbt.contains("knownSpells")) {
             CompoundNBT spellsNbt = nbt.getCompound("knownSpells");
-            for (String key : spellsNbt.getAllKeys()) {
-                knownSpells.put(key, spellsNbt.getInt(key));
-            }
+            for (String key : spellsNbt.getAllKeys()) knownSpells.put(key, spellsNbt.getInt(key));
+        }
+
+        if (nbt.contains("professions")) {
+            CompoundNBT profNbt = nbt.getCompound("professions");
+            for (Profession p : Profession.values()) if (profNbt.contains(p.getId())) profData(p).readFromNBT(profNbt.getCompound(p.getId()));
         }
     }
 }
