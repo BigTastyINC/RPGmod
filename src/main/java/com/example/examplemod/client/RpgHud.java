@@ -3,9 +3,16 @@ package com.example.examplemod.client;
 import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.ModCapabilities;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldVertexBufferUploader;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Matrix4f;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,7 +21,9 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.Map;
 
 @Mod.EventBusSubscriber(modid = "examplemod", value = Dist.CLIENT)
-public class RpgHud {
+public class RpgHud extends AbstractGui {
+
+    private static final ResourceLocation HUD_TEXTURE = new ResourceLocation("examplemod", "textures/gui/rpg_hud.png");
 
     @SubscribeEvent
     public static void onRenderPre(RenderGameOverlayEvent.Pre event) {
@@ -41,50 +50,118 @@ public class RpgHud {
         int height = event.getWindow().getGuiScaledHeight();
         int centerX = width / 2;
 
+        RenderSystem.enableBlend();
+
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
 
-            // ===== ВЕРХНИЙ ЛЕВЫЙ УГОЛ =====
-            final int leftX = 10;
-            final int startY = 10;
+            int leftX = 15;
+            int startY = 10;
 
-            String levelText = "Уровень: " + data.getLevel();
-            mc.font.drawShadow(ms, levelText, leftX, startY, 0xFFFF55);
+            float scaleX = 1.1f;
+            float scaleY = 0.5f;
 
+            int spacing = 3;
+            int barHeightOnScreen = (int)(29 * scaleY);
+
+            // ===== 1. ЗДОРОВЬЕ (Красный градиент) =====
             int hp = (int) player.getHealth();
             int maxHp = (int) player.getMaxHealth();
-            drawBar(ms, mc, leftX, startY + 12, 100, 10, (float)hp/maxHp, 0xFF555555, 0xFFCC0000, hp + " / " + maxHp);
+            drawCustomBar(ms, mc, leftX, startY, scaleX, scaleY, (float)hp/maxHp,
+                    0x77FF5555, 0x77AA0000, "HP: " + hp + " / " + maxHp);
 
+            // ===== 2. СТАМИНА (Желто-оранжевый градиент) =====
             int stamina = data.getStamina();
             int maxStamina = data.getMaxStamina();
-            drawBar(ms, mc, leftX, startY + 24, 100, 10, (float)stamina/maxStamina, 0xFF555555, 0xFFFFAA00, stamina + " / " + maxStamina);
+            drawCustomBar(ms, mc, leftX, startY + barHeightOnScreen + spacing, scaleX, scaleY, (float)stamina/maxStamina,
+                    0x77FFDD55, 0x77AA7700, "ST: " + stamina + " / " + maxStamina);
 
+            // ===== 3. МАНА (Синий градиент) =====
             int mana = data.getMana();
             int maxMana = data.getMaxMana();
-            drawBar(ms, mc, leftX, startY + 36, 100, 10, (float)mana/maxMana, 0xFF555555, 0xFF0000FF, mana + " / " + maxMana);
+            drawCustomBar(ms, mc, leftX, startY + (barHeightOnScreen + spacing) * 2, scaleX, scaleY, (float)mana/maxMana,
+                    0x775555FF, 0x770000AA, "MP: " + mana + " / " + maxMana);
 
-            // ===== НИЗ ПО ЦЕНТРУ: ОПЫТ =====
+            // ===== 4. ОПЫТ (ТЕКСТ) =====
             int currentLevel = data.getLevel();
             int currentXp = data.getXp();
             int xpNeeded = currentLevel * 100;
-            float progress = (float) currentXp / xpNeeded;
 
-            int xpBarWidth = 182;
-            int xpBarY = height - 32;
-            int xpBarHeight = 10;
+            String xpText = "§aXP: " + currentXp + " / " + xpNeeded;
+            mc.font.drawShadow(ms, xpText, centerX - (mc.font.width(xpText) / 2f), height - 45, 0xFFFFFF);
 
-            String xpText = currentXp + " / " + xpNeeded;
-            drawBar(ms, mc, centerX - (xpBarWidth / 2), xpBarY, xpBarWidth, xpBarHeight, progress, 0xFF555555, 0xFF00FF00, xpText);
-
-            // ===== ПРАВЫЙ НИЖНИЙ УГОЛ: УРОВЕНЬ =====
-            String bigLevelText = "" + currentLevel;
-            int levelWidth = mc.font.width(bigLevelText);
-            int levelX = width - levelWidth - 10;
-            int levelY = height - 20;
-            mc.font.drawShadow(ms, bigLevelText, levelX, levelY, 0xFFFF55);
+            // ===== УРОВЕНЬ =====
+            String levelStr = "Lvl. " + currentLevel;
+            mc.font.drawShadow(ms, levelStr, leftX, startY + (barHeightOnScreen + spacing) * 3 + 2, 0xFFFF55);
         });
 
-        // ===== ПРАВЫЙ ВЕРХНИЙ УГОЛ: БАФФЫ (не зависит от Capability) =====
+        RenderSystem.disableBlend();
         renderBuffs(ms, mc, player, width);
+    }
+
+    private static void drawCustomBar(MatrixStack ms, Minecraft mc, int x, int y, float scaleX, float scaleY, float progress, int colorTop, int colorBottom, String text) {
+        // 1. Текстура
+        ms.pushPose();
+        ms.translate(x, y, 0);
+        ms.scale(scaleX, scaleY, 1.0f);
+
+        mc.getTextureManager().bind(HUD_TEXTURE);
+        blit(ms, 0, 0, 0, 0, 158, 29, 256, 256);
+
+        // 2. Градиентная заливка
+        progress = Math.max(0.0f, Math.min(1.0f, progress));
+        int fillWidth = (int) ((158 - 10) * progress);
+        drawGradientFill(ms, 5, 6, fillWidth, 19, colorTop, colorBottom);
+
+        ms.popPose();
+
+        // 3. Текст
+        ms.pushPose();
+        float textScale = 0.6f;
+        float centerX = x + (158 * scaleX) / 2f;
+        float centerY = y + (29 * scaleY) / 2f;
+
+        ms.translate(centerX, centerY, 0);
+        ms.scale(textScale, textScale, 1.0f);
+
+        int textWidth = mc.font.width(text);
+        mc.font.drawShadow(ms, text, -textWidth / 2f, -3, 0xFFFFFF);
+        ms.popPose();
+    }
+
+    private static void drawGradientFill(MatrixStack ms, int x, int y, int width, int height, int colorTop, int colorBottom) {
+        RenderSystem.disableTexture();
+        RenderSystem.enableBlend();
+        RenderSystem.disableAlphaTest();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.shadeModel(7425);
+
+        // ИСПРАВЛЕНО: используем метод .pose() вместо .matrix или .getMatrix()
+        Matrix4f matrix = ms.last().pose();
+
+        BufferBuilder buffer = Tessellator.getInstance().getBuilder();
+        buffer.begin(7, DefaultVertexFormats.POSITION_COLOR);
+
+        int aT = (colorTop >> 24) & 0xFF;
+        int rT = (colorTop >> 16) & 0xFF;
+        int gT = (colorTop >> 8) & 0xFF;
+        int bT = colorTop & 0xFF;
+
+        int aB = (colorBottom >> 24) & 0xFF;
+        int rB = (colorBottom >> 16) & 0xFF;
+        int gB = (colorBottom >> 8) & 0xFF;
+        int bB = colorBottom & 0xFF;
+
+        buffer.vertex(matrix, x + width, y, 0.0f).color(rT, gT, bT, aT).endVertex();
+        buffer.vertex(matrix, x, y, 0.0f).color(rT, gT, bT, aT).endVertex();
+        buffer.vertex(matrix, x, y + height, 0.0f).color(rB, gB, bB, aB).endVertex();
+        buffer.vertex(matrix, x + width, y + height, 0.0f).color(rB, gB, bB, aB).endVertex();
+
+        buffer.end();
+        WorldVertexBufferUploader.end(buffer);
+
+        RenderSystem.shadeModel(7424);
+        RenderSystem.enableAlphaTest();
+        RenderSystem.enableTexture();
     }
 
     private static void renderBuffs(MatrixStack ms, Minecraft mc, PlayerEntity player, int width) {
@@ -108,19 +185,8 @@ public class RpgHud {
 
             int textWidth = mc.font.width(text);
             mc.font.drawShadow(ms, text, x - textWidth, y, 0xFFFFFF);
-            AbstractGui.fill(ms, x - textWidth, y + 10, x, y + 11, 0xFFAA55FF);
+            fill(ms, x - textWidth, y + 10, x, y + 11, 0xFFAA55FF);
             y += 13;
-        }
-    }
-
-    private static void drawBar(MatrixStack ms, Minecraft mc, int x, int y, int width, int height, float progress, int bgColor, int fillColor, String text) {
-        progress = Math.max(0.0f, Math.min(1.0f, progress));
-        AbstractGui.fill(ms, x, y, x + width, y + height, bgColor);
-        int fillWidth = (int) (width * progress);
-        AbstractGui.fill(ms, x, y, x + fillWidth, y + height, fillColor);
-        if (text != null && !text.isEmpty()) {
-            int textWidth = mc.font.width(text);
-            mc.font.drawShadow(ms, text, x + (width - textWidth) / 2f, y + 1, 0xFFFFFF);
         }
     }
 }

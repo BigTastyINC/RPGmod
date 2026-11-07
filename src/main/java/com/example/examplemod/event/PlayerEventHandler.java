@@ -24,12 +24,14 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.network.PacketDistributor;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = "examplemod")
@@ -44,6 +46,22 @@ public class PlayerEventHandler {
         if (event.getObject() instanceof PlayerEntity) {
             if (!event.getCapabilities().containsKey(new ResourceLocation("examplemod:player_level"))) {
                 event.addCapability(new ResourceLocation("examplemod:player_level"), new PlayerLevelProvider());
+            }
+        }
+    }
+
+    // Блокируем выброс только Книги Статов (Книгу Заклинаний мы убрали)
+    @SubscribeEvent
+    public static void onItemToss(ItemTossEvent event) {
+        ItemStack stack = event.getEntityItem().getItem();
+        if (stack.getItem() == ModItems.STATS_BOOK.get()) {
+            event.setCanceled(true);
+            PlayerEntity player = event.getPlayer();
+            if (player instanceof ServerPlayerEntity) {
+                ServerPlayerEntity sp = (ServerPlayerEntity) player;
+                sp.inventory.add(stack.copy());
+                sp.containerMenu.broadcastChanges();
+                sp.displayClientMessage(new StringTextComponent("§cЭтот предмет нельзя выбросить!"), true);
             }
         }
     }
@@ -75,10 +93,9 @@ public class PlayerEventHandler {
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
 
-            // === ЛОГИКА ДЛЯ ЗЕЛИЙ (АЛХИМИК) ===
             if (ItemStatHelper.isPotion(craftedItem)) {
                 Profession prof = Profession.ALCHEMIST;
-                int xpGain = 50; // Опыт за зелье
+                int xpGain = 50;
 
                 boolean leveledUp = data.addProfessionXp(prof, xpGain);
                 int profLevel = data.getProfessionLevel(prof);
@@ -102,7 +119,6 @@ public class PlayerEventHandler {
                 return;
             }
 
-            // === ЛОГИКА ДЛЯ ОРУЖИЯ/БРОНИ ===
             boolean isWeapon = ItemStatHelper.isWeapon(craftedItem);
             Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
             int xpGain = isWeapon ? 100 : 50;
@@ -243,7 +259,7 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             applyStats(player, data);
             syncData(player, data);
-            giveBook(player);
+            giveBook(player); // Выдаем только книгу статов
         });
     }
 
@@ -322,6 +338,10 @@ public class PlayerEventHandler {
                 attackSpeed.addPermanentModifier(new AttributeModifier(ATTACK_SPEED_MODIFIER_ID, "rpg_dexterity", bonus, AttributeModifier.Operation.ADDITION));
             }
         }
+
+        if (player.getHealth() > player.getMaxHealth()) {
+            player.setHealth(player.getMaxHealth());
+        }
     }
 
     public static SyncLevelPacket buildSyncPacket(IPlayerLevel data) {
@@ -338,7 +358,8 @@ public class PlayerEventHandler {
                 data.getMana(), data.getHealthRegen(), data.getManaRegen(),
                 data.getStamina(), data.getStaminaRegen(),
                 data.getCopper(), data.getSilver(), data.getGold(),
-                levels, xps
+                levels, xps,
+                data.getMageRank(), data.getMageXp(), data.getKnownSpells()
         );
     }
 

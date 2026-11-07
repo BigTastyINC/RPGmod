@@ -1,16 +1,18 @@
 package com.example.examplemod.event;
 
 import com.example.examplemod.capability.ModCapabilities;
-import com.example.examplemod.network.NetworkHandler;
-import com.example.examplemod.network.OpenShopPacket;
+import com.example.examplemod.container.TradeContainer;
 import com.example.examplemod.shop.ShopUtils;
 import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.fml.network.NetworkHooks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +37,14 @@ public class NpcInteractHandler {
         else if (name.contains("Глава Гильдии")) merchantType = 3;
         else return;
 
-        if (!(event.getPlayer() instanceof ServerPlayerEntity)) return;
-        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-
+        // ИСПРАВЛЕНО: Отменяем стандартный клик по NPC на обеих сторонах
         event.setCanceled(true);
         event.setCancellationResult(net.minecraft.util.ActionResultType.SUCCESS);
+
+        // А код открытия магазина выполняем ТОЛЬКО на сервере
+        if (event.getPlayer().level.isClientSide) return;
+        if (!(event.getPlayer() instanceof ServerPlayerEntity)) return;
+        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
 
         long timeWindow = player.level.getGameTime() / REFRESH_TIME_TICKS;
         long seed = villager.getUUID().getMostSignificantBits() ^ (timeWindow * 31);
@@ -58,8 +63,30 @@ public class NpcInteractHandler {
                 items.add(stack);
                 prices.add(price);
             }
-            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
-                    new OpenShopPacket(items, prices, data.getCopper(), data.getSilver(), data.getGold()));
+
+            NetworkHooks.openGui(player, new INamedContainerProvider() {
+                @Override
+                public StringTextComponent getDisplayName() {
+                    return new StringTextComponent("Магазин");
+                }
+
+                @Override
+                public TradeContainer createMenu(int i, net.minecraft.entity.player.PlayerInventory inv, PlayerEntity p) {
+                    return new TradeContainer(i, inv, items, prices, data.getCopper(), data.getSilver(), data.getGold());
+                }
+            }, buf -> {
+                buf.writeInt(items.size());
+                for (ItemStack item : items) {
+                    buf.writeItemStack(item, false);
+                }
+                buf.writeInt(prices.size());
+                for (Integer price : prices) {
+                    buf.writeInt(price);
+                }
+                buf.writeInt(data.getCopper());
+                buf.writeInt(data.getSilver());
+                buf.writeInt(data.getGold());
+            });
         });
     }
 }

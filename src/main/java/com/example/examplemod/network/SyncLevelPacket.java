@@ -7,6 +7,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.network.NetworkEvent;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class SyncLevelPacket {
@@ -15,20 +17,33 @@ public class SyncLevelPacket {
     private final int[] professionLevels;
     private final int[] professionXp;
 
-    /** Старый конструктор — для мест, где профессии не передаются. */
+    private final int mageRank, mageXp;
+    private final Map<String, Integer> knownSpells;
+
+    // Старый конструктор (без магии)
     public SyncLevelPacket(int level, int xp, int statPoints, int strength, int dexterity, int intelligence,
                            int luck, int vitality, int mana, int healthRegen, int manaRegen,
                            int stamina, int staminaRegen, int copper, int silver, int gold) {
         this(level, xp, statPoints, strength, dexterity, intelligence, luck, vitality, mana,
                 healthRegen, manaRegen, stamina, staminaRegen, copper, silver, gold,
-                new int[0], new int[0]);
+                new int[0], new int[0], 0, 0, new HashMap<>());
     }
 
-    /** Полный конструктор — с профессиями. */
+    // Конструктор с профессиями
     public SyncLevelPacket(int level, int xp, int statPoints, int strength, int dexterity, int intelligence,
                            int luck, int vitality, int mana, int healthRegen, int manaRegen,
                            int stamina, int staminaRegen, int copper, int silver, int gold,
                            int[] professionLevels, int[] professionXp) {
+        this(level, xp, statPoints, strength, dexterity, intelligence, luck, vitality, mana,
+                healthRegen, manaRegen, stamina, staminaRegen, copper, silver, gold,
+                professionLevels, professionXp, 0, 0, new HashMap<>());
+    }
+
+    // Полный конструктор (со всем)
+    public SyncLevelPacket(int level, int xp, int statPoints, int strength, int dexterity, int intelligence,
+                           int luck, int vitality, int mana, int healthRegen, int manaRegen,
+                           int stamina, int staminaRegen, int copper, int silver, int gold,
+                           int[] professionLevels, int[] professionXp, int mageRank, int mageXp, Map<String, Integer> knownSpells) {
         this.level = level; this.xp = xp; this.statPoints = statPoints;
         this.strength = strength; this.dexterity = dexterity; this.intelligence = intelligence;
         this.luck = luck; this.vitality = vitality;
@@ -37,6 +52,9 @@ public class SyncLevelPacket {
         this.copper = copper; this.silver = silver; this.gold = gold;
         this.professionLevels = professionLevels;
         this.professionXp = professionXp;
+        this.mageRank = mageRank;
+        this.mageXp = mageXp;
+        this.knownSpells = knownSpells;
     }
 
     public static void encode(SyncLevelPacket msg, PacketBuffer buf) {
@@ -47,12 +65,19 @@ public class SyncLevelPacket {
         buf.writeInt(msg.stamina); buf.writeInt(msg.staminaRegen);
         buf.writeInt(msg.copper); buf.writeInt(msg.silver); buf.writeInt(msg.gold);
 
-        // Профессии: сначала длину, потом каждый элемент
         buf.writeVarInt(msg.professionLevels.length);
         for (int v : msg.professionLevels) buf.writeInt(v);
-
         buf.writeVarInt(msg.professionXp.length);
         for (int v : msg.professionXp) buf.writeInt(v);
+
+        // Магия
+        buf.writeInt(msg.mageRank);
+        buf.writeInt(msg.mageXp);
+        buf.writeInt(msg.knownSpells.size());
+        for (Map.Entry<String, Integer> entry : msg.knownSpells.entrySet()) {
+            buf.writeUtf(entry.getKey());
+            buf.writeInt(entry.getValue());
+        }
     }
 
     public static SyncLevelPacket decode(PacketBuffer buf) {
@@ -71,8 +96,16 @@ public class SyncLevelPacket {
         int[] xps = new int[xpsLen];
         for (int i = 0; i < xpsLen; i++) xps[i] = buf.readInt();
 
+        int mRank = buf.readInt();
+        int mXp = buf.readInt();
+        int spellSize = buf.readInt();
+        Map<String, Integer> spells = new HashMap<>();
+        for (int i = 0; i < spellSize; i++) {
+            spells.put(buf.readUtf(32767), buf.readInt());
+        }
+
         return new SyncLevelPacket(level, xp, sp, str, dex, intel, luck, vit, mana, hr, mr,
-                stam, sr, cop, sil, gol, lvls, xps);
+                stam, sr, cop, sil, gol, lvls, xps, mRank, mXp, spells);
     }
 
     public static void handle(SyncLevelPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -94,6 +127,12 @@ public class SyncLevelPacket {
                         data.setProfessionXp(all[i], msg.professionXp[i]);
                     }
                 }
+
+                // Синхронизация магии
+                data.setMageRank(msg.mageRank);
+                data.setMageXp(msg.mageXp);
+                data.getKnownSpells().clear();
+                data.getKnownSpells().putAll(msg.knownSpells);
             });
         });
         ctx.get().setPacketHandled(true);

@@ -1,9 +1,13 @@
 package com.example.examplemod.event;
 
 import com.example.examplemod.buffs.RpgBuffs;
-import com.example.examplemod.item.ModItems; // ИСПРАВЛЕНО: правильный импорт
+import com.example.examplemod.capability.ModCapabilities;
+import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.item.RpgPotionItem;
+import com.example.examplemod.spells.Spell;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.text.StringTextComponent;
@@ -21,7 +25,41 @@ public class ItemTooltipHandler {
 
         if (nbt == null) return;
 
-        // === Оружие / броня / зелья / кристаллы ===
+        PlayerEntity player = event.getPlayer();
+        if (player == null) return;
+
+        // === 1. ТОМ ОБУЧЕНИЯ (СВИТОК) ===
+        if (stack.getItem() == ModItems.SPELL_TOME.get()) {
+            String spellId = nbt.getString("SpellId");
+
+            if (!spellId.isEmpty()) {
+                Spell spell = Spell.byId(spellId);
+                int spellLevel = spell.getDefaultLevel();
+
+                final int[] mageRank = {0};
+                player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> mageRank[0] = data.getMageRank());
+
+                Rarity rarity = Rarity.values()[Math.min(4, mageRank[0])];
+
+                int finalDamage = (int) ((spell.getBaseDamage() + (spellLevel * 5)) * rarity.getMultiplier());
+                int finalMana = (int) (spell.getBaseManaCost() * (1.0 - (spellLevel * 0.05)));
+
+                event.getToolTip().add(new StringTextComponent(rarity.getColor() + spell.getName() + " [" + rarity.getName() + "]"));
+                event.getToolTip().add(new StringTextComponent("§7Уровень заклинания: " + spellLevel));
+                event.getToolTip().add(new StringTextComponent("§8--------------------"));
+                event.getToolTip().add(new StringTextComponent("§cУрон: " + finalDamage));
+                event.getToolTip().add(new StringTextComponent("§9Мана: " + finalMana));
+                event.getToolTip().add(new StringTextComponent("§7" + spell.getDescription()));
+
+                if (mageRank[0] < spellLevel) {
+                    event.getToolTip().add(new StringTextComponent(""));
+                    event.getToolTip().add(new StringTextComponent("§4⚠ Требуется Ранг Мага: " + spellLevel));
+                }
+            }
+            return;
+        }
+
+        // === 2. ОРУЖИЕ / БРОНЯ / ЗЕЛЬЯ / КРИСТАЛЛЫ ===
         if (nbt.contains("ItemLevel")) {
             int level = nbt.getInt("ItemLevel");
             int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
@@ -36,7 +74,6 @@ public class ItemTooltipHandler {
                 if (potion.isManaPotion()) event.getToolTip().add(new StringTextComponent("§bВосстанавливает " + amount + " маны"));
                 else event.getToolTip().add(new StringTextComponent("§cВосстанавливает " + amount + " здоровья"));
             }
-            // НОВОЕ: Проверка на кристаллы
             else if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get() ||
                     stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get() ||
                     stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) {
@@ -51,7 +88,7 @@ public class ItemTooltipHandler {
                 if (nbt.getInt("StatVitality") > 0) event.getToolTip().add(new StringTextComponent("§4+" + nbt.getInt("StatVitality") + " Жизнь"));
             }
         }
-        // === Магическая еда: есть RarityLevel, но нет ItemLevel ===
+        // === 3. МАГИЧЕСКАЯ ЕДА ===
         else if (nbt.contains("RarityLevel")) {
             int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
             Rarity rarity = Rarity.values()[rIndex];

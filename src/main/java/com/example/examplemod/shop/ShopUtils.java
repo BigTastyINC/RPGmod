@@ -11,6 +11,20 @@ import java.util.Random;
 
 public class ShopUtils {
 
+    // Красивый формат цены (медь -> серебро -> золото)
+    public static String formatPrice(int copper) {
+        if (copper < 100) return copper + "м";
+        int s = copper / 100;
+        int m = copper % 100;
+        if (s < 100) return m > 0 ? s + "с " + m + "м" : s + "с";
+        int g = s / 100;
+        s = s % 100;
+        String res = g + "з";
+        if (s > 0) res += " " + s + "с";
+        if (m > 0) res += " " + m + "м";
+        return res;
+    }
+
     public static int calcSellPrice(ItemStack stack) {
         CompoundNBT nbt = stack.getTag();
         if (nbt == null || !nbt.contains("ItemLevel")) return 5;
@@ -21,6 +35,7 @@ public class ShopUtils {
                 + nbt.getInt("StatVitality");
         float matMult = getMaterialMultiplier(stack.getItem());
 
+        // ЕДА И ЗЕЛЬЯ: своя формула
         if (stack.getItem().isEdible()) {
             return (level * 5 + rarity * 50) * 2;
         }
@@ -41,9 +56,11 @@ public class ShopUtils {
         int level = Math.max(1, nbt.getInt("ItemLevel"));
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
 
+        // ЕДА: в 3 раза дороже за уровень и в 6 раз за редкость
         if (stack.getItem().isEdible()) {
             return level * 30 + rarity * 300;
         }
+        // ЗЕЛЬЯ: стандартная формула
         if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
             return level * 10 + rarity * 50;
         }
@@ -59,7 +76,6 @@ public class ShopUtils {
     }
 
     public static float getMaterialMultiplier(Item item) {
-        // ... (оставляем как было) ...
         if (item == Items.WOODEN_SWORD || item == Items.LEATHER_HELMET
                 || item == Items.LEATHER_CHESTPLATE || item == Items.LEATHER_LEGGINGS
                 || item == Items.LEATHER_BOOTS) return 1.0f;
@@ -73,7 +89,23 @@ public class ShopUtils {
         if (item == Items.DIAMOND_SWORD || item == Items.DIAMOND_HELMET
                 || item == Items.DIAMOND_CHESTPLATE || item == Items.DIAMOND_LEGGINGS
                 || item == Items.DIAMOND_BOOTS) return 5.0f;
-        // ... (и так далее для твоих слитков) ...
+
+        if (item == ModItems.SILVER_SWORD.get() || item == ModItems.SILVER_HELMET.get()
+                || item == ModItems.SILVER_CHESTPLATE.get() || item == ModItems.SILVER_LEGGINGS.get()
+                || item == ModItems.SILVER_BOOTS.get()) return 2.0f;
+        if (item == ModItems.COBALT_SWORD.get() || item == ModItems.COBALT_HELMET.get()
+                || item == ModItems.COBALT_CHESTPLATE.get() || item == ModItems.COBALT_LEGGINGS.get()
+                || item == ModItems.COBALT_BOOTS.get()) return 3.0f;
+        if (item == ModItems.MITHRIL_SWORD.get() || item == ModItems.MITHRIL_HELMET.get()
+                || item == ModItems.MITHRIL_CHESTPLATE.get() || item == ModItems.MITHRIL_LEGGINGS.get()
+                || item == ModItems.MITHRIL_BOOTS.get()) return 4.0f;
+        if (item == ModItems.ADAMANTIUM_SWORD.get() || item == ModItems.ADAMANTIUM_HELMET.get()
+                || item == ModItems.ADAMANTIUM_CHESTPLATE.get() || item == ModItems.ADAMANTIUM_LEGGINGS.get()
+                || item == ModItems.ADAMANTIUM_BOOTS.get()) return 6.0f;
+        if (item == ModItems.ORICHALCUM_SWORD.get() || item == ModItems.ORICHALCUM_HELMET.get()
+                || item == ModItems.ORICHALCUM_CHESTPLATE.get() || item == ModItems.ORICHALCUM_LEGGINGS.get()
+                || item == ModItems.ORICHALCUM_BOOTS.get()) return 8.0f;
+
         return 1.0f;
     }
 
@@ -83,14 +115,37 @@ public class ShopUtils {
 
     private static Item pickItemForMerchant(Random rand, int merchantType) {
         if (merchantType == 0) {
-            return pickFrom(rand, Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.DIAMOND_SWORD, ModItems.SILVER_SWORD.get(), ModItems.COBALT_SWORD.get(), ModItems.MITHRIL_SWORD.get(), ModItems.ADAMANTIUM_SWORD.get(), ModItems.ORICHALCUM_SWORD.get());
+            return pickFrom(rand,
+                    Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD,
+                    Items.GOLDEN_SWORD, Items.DIAMOND_SWORD,
+                    ModItems.SILVER_SWORD.get(), ModItems.COBALT_SWORD.get(),
+                    ModItems.MITHRIL_SWORD.get(), ModItems.ADAMANTIUM_SWORD.get(),
+                    ModItems.ORICHALCUM_SWORD.get());
         } else if (merchantType == 1) {
-            return pickFrom(rand, Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS, Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS, Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS, Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS, ModItems.SILVER_HELMET.get(), ModItems.COBALT_HELMET.get(), ModItems.MITHRIL_HELMET.get(), ModItems.ADAMANTIUM_HELMET.get(), ModItems.ORICHALCUM_HELMET.get(), ModItems.SILVER_CHESTPLATE.get(), ModItems.COBALT_CHESTPLATE.get(), ModItems.MITHRIL_CHESTPLATE.get(), ModItems.ADAMANTIUM_CHESTPLATE.get(), ModItems.ORICHALCUM_CHESTPLATE.get(), ModItems.SILVER_LEGGINGS.get(), ModItems.COBALT_LEGGINGS.get(), ModItems.MITHRIL_LEGGINGS.get(), ModItems.ADAMANTIUM_LEGGINGS.get(), ModItems.ORICHALCUM_LEGGINGS.get(), ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(), ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
+            return pickFrom(rand,
+                    Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS,
+                    Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
+                    Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS,
+                    Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS,
+                    ModItems.SILVER_HELMET.get(), ModItems.COBALT_HELMET.get(), ModItems.MITHRIL_HELMET.get(),
+                    ModItems.ADAMANTIUM_HELMET.get(), ModItems.ORICHALCUM_HELMET.get(),
+                    ModItems.SILVER_CHESTPLATE.get(), ModItems.COBALT_CHESTPLATE.get(), ModItems.MITHRIL_CHESTPLATE.get(),
+                    ModItems.ADAMANTIUM_CHESTPLATE.get(), ModItems.ORICHALCUM_CHESTPLATE.get(),
+                    ModItems.SILVER_LEGGINGS.get(), ModItems.COBALT_LEGGINGS.get(), ModItems.MITHRIL_LEGGINGS.get(),
+                    ModItems.ADAMANTIUM_LEGGINGS.get(), ModItems.ORICHALCUM_LEGGINGS.get(),
+                    ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(),
+                    ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
         } else if (merchantType == 2) {
-            // НОВОЕ: Добавляем кристаллы Магу
-            return pickFrom(rand, ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get(), ModItems.SMALL_MAGIC_CRYSTAL.get(), ModItems.MEDIUM_MAGIC_CRYSTAL.get(), ModItems.LARGE_MAGIC_CRYSTAL.get());
+            // Маг продает зелья и кристаллы
+            return pickFrom(rand, ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get(),
+                    ModItems.SMALL_MAGIC_CRYSTAL.get(), ModItems.MEDIUM_MAGIC_CRYSTAL.get(), ModItems.LARGE_MAGIC_CRYSTAL.get());
         } else {
-            return pickFrom(rand, Items.BREAD, Items.COOKIE, Items.BAKED_POTATO, Items.PUMPKIN_PIE, Items.MUSHROOM_STEW, Items.BEETROOT_SOUP, Items.RABBIT_STEW, Items.SUSPICIOUS_STEW, Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_MUTTON, Items.COOKED_CHICKEN, Items.COOKED_RABBIT, Items.COOKED_COD, Items.COOKED_SALMON, Items.DRIED_KELP, Items.GOLDEN_CARROT, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE, Items.HONEY_BOTTLE);
+            return pickFrom(rand,
+                    Items.BREAD, Items.COOKIE, Items.BAKED_POTATO, Items.PUMPKIN_PIE,
+                    Items.MUSHROOM_STEW, Items.BEETROOT_SOUP, Items.RABBIT_STEW, Items.SUSPICIOUS_STEW,
+                    Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_MUTTON, Items.COOKED_CHICKEN,
+                    Items.COOKED_RABBIT, Items.COOKED_COD, Items.COOKED_SALMON, Items.DRIED_KELP,
+                    Items.GOLDEN_CARROT, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE, Items.HONEY_BOTTLE);
         }
     }
 
@@ -102,7 +157,6 @@ public class ShopUtils {
         int r = Math.min(rarity, Rarity.values().length - 1);
         nbt.putInt("RarityLevel", r);
 
-        // Если это НЕ еда и НЕ кристаллы, выдаем статы
         if (!item.isEdible() && item != ModItems.SMALL_MAGIC_CRYSTAL.get()
                 && item != ModItems.MEDIUM_MAGIC_CRYSTAL.get() && item != ModItems.LARGE_MAGIC_CRYSTAL.get()) {
             int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));

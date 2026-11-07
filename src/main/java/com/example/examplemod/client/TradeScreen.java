@@ -1,122 +1,142 @@
 package com.example.examplemod.client;
 
-import com.example.examplemod.buffs.RpgBuffs;
+import com.example.examplemod.container.TradeContainer;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.network.BuyItemPacket;
 import com.example.examplemod.network.NetworkHandler;
-import com.example.examplemod.network.OpenShopPacket;
-import com.example.examplemod.network.SellHeldItemPacket;
+import com.example.examplemod.network.SellSlotsPacket;
 import com.example.examplemod.shop.ShopUtils;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 
-public class TradeScreen extends Screen {
-    private final OpenShopPacket data;
+public class TradeScreen extends ContainerScreen<TradeContainer> {
 
-    public TradeScreen(OpenShopPacket data) {
-        super(new StringTextComponent("Магазин"));
-        this.data = data;
-    }
-
-    private static String formatPrice(int copper) {
-        if (copper < 100) return copper + "м";
-        int s = copper / 100;
-        int m = copper % 100;
-        if (s < 100) return m > 0 ? s + "с " + m + "м" : s + "с";
-        int g = s / 100;
-        s = s % 100;
-        String res = g + "з";
-        if (s > 0) res += " " + s + "с";
-        if (m > 0) res += " " + m + "м";
-        return res;
+    public TradeScreen(TradeContainer container, PlayerInventory inv, ITextComponent title) {
+        super(container, inv, title);
+        this.imageWidth = 520;
+        this.imageHeight = 320;
     }
 
     @Override
     protected void init() {
         super.init();
-        int centerX = this.width / 2;
-        int priceButtonY = this.height / 2 + 5;
+        int left = this.leftPos;
+        int top = this.topPos;
 
-        for (int i = 0; i < data.prices.size(); i++) {
+        // Кнопки покупки
+        for (int i = 0; i < this.menu.prices.size(); i++) {
             final int idx = i;
-            final int price = data.prices.get(i);
-            int bx = centerX - 200 + i * 85;
-            this.addButton(new Button(bx, priceButtonY, 80, 20,
-                    new StringTextComponent(formatPrice(price)),
+            final int price = this.menu.prices.get(i);
+            int bx = left + 35 + i * 90;
+            this.addButton(new Button(bx, top + 100, 80, 20,
+                    new StringTextComponent("§e" + ShopUtils.formatPrice(price)),
                     b -> NetworkHandler.INSTANCE.sendToServer(
-                            new BuyItemPacket(data.items.get(idx), price))));
+                            new BuyItemPacket(this.menu.items.get(idx), price))));
         }
 
-        this.addButton(new Button(centerX - 100, this.height / 2 + 50, 200, 20,
-                new StringTextComponent("§aПродать предмет из руки"), b -> {
-            NetworkHandler.INSTANCE.sendToServer(new SellHeldItemPacket());
+        // Кнопка "Продать всё"
+        this.addButton(new Button(left + 130, top + 270, 110, 20,
+                new StringTextComponent("§aПродать всё"), b -> {
+            NetworkHandler.INSTANCE.sendToServer(new SellSlotsPacket());
         }));
 
-        this.addButton(new Button(centerX - 50, this.height / 2 + 110, 100, 20,
+        // Кнопка "Закрыть"
+        this.addButton(new Button(left + 280, top + 270, 110, 20,
                 new StringTextComponent("Закрыть"), b -> this.onClose()));
     }
 
     @Override
     public void render(MatrixStack ms, int mouseX, int mouseY, float partial) {
         this.renderBackground(ms);
-        fill(ms, this.width / 2 - 220, this.height / 2 - 145, this.width / 2 + 220, this.height / 2 + 145, 0xCC000000);
 
-        int centerX = this.width / 2;
+        int left = this.leftPos;
+        int top = this.topPos;
 
-        drawCenteredString(ms, this.font, "§6Магазин", centerX, this.height / 2 - 125, 0xFFFFFF);
-        drawCenteredString(ms, this.font,
-                "§eБаланс: " + data.gold + "з " + data.silver + "с " + data.copper + "м",
-                centerX, this.height / 2 - 105, 0xFFFFFF);
+        // 1. Основной фон магазина
+        fill(ms, left, top, left + 520, top + 320, 0xEE1a1a1a);
 
-        for (int i = 0; i < data.items.size(); i++) {
-            int bx = centerX - 200 + i * 85;
-            ItemStack preview = data.items.get(i);
+        // 2. Товары
+        for (int i = 0; i < this.menu.items.size(); i++) {
+            int bx = left + 35 + i * 90;
+            ItemStack preview = this.menu.items.get(i);
             CompoundNBT nbt = preview.getOrCreateTag();
             int level = Math.max(1, nbt.getInt("ItemLevel"));
             int rarity = Math.min(4, nbt.getInt("RarityLevel"));
             Rarity r = Rarity.values()[rarity];
 
-            fill(ms, bx + 28, this.height / 2 - 75, bx + 48, this.height / 2 - 55, 0xFF8B8B8B);
-            fill(ms, bx + 30, this.height / 2 - 73, bx + 46, this.height / 2 - 57, 0xFF373737);
+            // Рамка товара
+            fill(ms, bx + 24, top + 40, bx + 56, top + 72, 0xFF333333);
+            fill(ms, bx + 25, top + 41, bx + 55, top + 71, 0xFF111111);
 
-            this.itemRenderer.renderAndDecorateItem(preview, bx + 30, this.height / 2 - 73);
+            // ИКОНКА
+            this.itemRenderer.renderAndDecorateItem(preview, bx + 32, top + 48);
 
-            if (preview.getItem().isEdible()) {
-                int buffId = RpgBuffs.getBuffForFood(preview.getItem());
-                drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, this.height / 2 - 42, 0xFFFFFF);
-                drawCenteredString(ms, this.font, "§b" + RpgBuffs.NAMES[buffId], bx + 40, this.height / 2 - 28, 0xFFFFFF);
-                drawCenteredString(ms, this.font, "§7" + RpgBuffs.DURATION_MINUTES[rarity] + " мин", bx + 40, this.height / 2 - 15, 0xFFFFFF);
-            } else {
-                drawCenteredString(ms, this.font, "§eУр." + level, bx + 40, this.height / 2 - 42, 0xFFFFFF);
-                drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, this.height / 2 - 28, 0xFFFFFF);
+            // Название и уровень
+            drawCenteredString(ms, this.font, "§eУр." + level, bx + 40, top + 15, 0xFFFFFF);
+            drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, top + 25, 0xFFFFFF);
+        }
+
+        // 3. Заголовок
+        drawCenteredString(ms, this.font, "§6✦ МАГАЗИН ✦", left + 260, top - 12, 0xFFFFFF);
+
+        // 4. Слоты продажи
+        drawCenteredString(ms, this.font, "§7Положи предметы в слоты для продажи:", left + 260, top + 125, 0xFFFFFF);
+        for (int i = 0; i < 10; i++) {
+            drawSlotBg(ms, left + 169 + i * 18, top + 139);
+        }
+
+        // 5. Инвентарь игрока
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 9; c++) {
+                drawSlotBg(ms, left + 178 + c * 18, top + 179 + r * 18);
+            }
+        }
+        for (int c = 0; c < 9; c++) {
+            drawSlotBg(ms, left + 178 + c * 18, top + 237);
+        }
+
+        // === НОВОЕ: ПОДСЧЕТ СУММЫ ПРОДАЖИ ===
+        int totalSellPrice = 0;
+        for (int i = 0; i < 10; i++) {
+            ItemStack stack = this.menu.getSlot(i).getItem();
+            // Проверяем, что предмет есть и у него есть уровень (как в фильтре слота)
+            if (!stack.isEmpty() && stack.hasTag() && stack.getTag().contains("ItemLevel")) {
+                totalSellPrice += ShopUtils.calcSellPrice(stack) * stack.getCount();
             }
         }
 
-        PlayerEntity player = Minecraft.getInstance().player;
-        if (player != null) {
-            ItemStack held = player.getMainHandItem();
-            String hint;
-            if (held.isEmpty()) {
-                hint = "§7(в руке пусто)";
-            } else if (held.getItem().isEdible()) {
-                // Еда — продавать нельзя
-                hint = "§cЕду продавать нельзя — только покупать";
-            } else if (!held.hasTag() || !held.getTag().contains("ItemLevel")) {
-                hint = "§7(у предмета нет уровня — нельзя продать)";
-            } else {
-                hint = "§7В руке: " + held.getDisplayName().getString() + " → " + formatPrice(ShopUtils.calcSellPrice(held));
-            }
-            drawCenteredString(ms, this.font, hint, centerX, this.height / 2 + 80, 0xFFFFFF);
+        // Выводим текст над кнопкой "Продать всё", если есть что продавать
+        if (totalSellPrice > 0) {
+            String sellText = "§aВы получите: §6" + ShopUtils.formatPrice(totalSellPrice);
+            drawCenteredString(ms, this.font, sellText, left + 185, top + 255, 0xFFFFFF);
         }
+
+        // 6. Баланс
+        String balance = "§eБаланс: §6" + this.menu.gold + "з §7" + this.menu.silver + "с §e" + this.menu.copper + "м";
+        drawCenteredString(ms, this.font, balance, left + 260, top + 300, 0xFFFFFF);
 
         super.render(ms, mouseX, mouseY, partial);
     }
+
+    private void drawSlotBg(MatrixStack ms, int x, int y) {
+        fill(ms, x, y, x + 18, y + 18, 0xFF373737);
+        fill(ms, x, y, x + 18, y + 1, 0xFF8B8B8B);
+        fill(ms, x, y, x + 1, y + 18, 0xFF8B8B8B);
+        fill(ms, x, y + 17, x + 18, y + 18, 0xFF000000);
+        fill(ms, x + 17, y, x + 18, y + 18, 0xFF000000);
+    }
+
+    @Override
+    protected void renderBg(MatrixStack ms, float partialTicks, int x, int y) {}
+
+    @Override
+    protected void renderLabels(MatrixStack matrixStack, int x, int y) {}
 
     @Override
     public boolean isPauseScreen() { return false; }

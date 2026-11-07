@@ -5,7 +5,7 @@ import com.example.examplemod.event.PlayerEventHandler;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.network.NetworkHandler;
-import com.example.examplemod.network.SyncLevelPacket;
+import com.example.examplemod.spells.Spell;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -31,7 +31,7 @@ public class RpgCommand {
                                             data.addXp(amount);
                                             PlayerEventHandler.applyStats(player, data);
                                             player.sendMessage(new StringTextComponent("Добавлено " + amount + " опыта!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), PlayerEventHandler.buildSyncPacket(data));
                                         });
                                     }
                                     return 1;
@@ -47,7 +47,7 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addStatPoints(amount);
                                             player.sendMessage(new StringTextComponent("§aДобавлено " + amount + " очков!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), PlayerEventHandler.buildSyncPacket(data));
                                         });
                                     }
                                     return 1;
@@ -63,7 +63,7 @@ public class RpgCommand {
                                         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                                             data.addCoins(amount);
                                             player.sendMessage(new StringTextComponent("§6Добавлено " + amount + " меди!"), player.getUUID());
-                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(), data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(), data.getMana(), data.getHealthRegen(), data.getManaRegen(), data.getStamina(), data.getStaminaRegen(), data.getCopper(), data.getSilver(), data.getGold()));
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), PlayerEventHandler.buildSyncPacket(data));
                                         });
                                     }
                                     return 1;
@@ -174,6 +174,28 @@ public class RpgCommand {
                                         npc.setCustomNameVisible(true);
                                         player.level.addFreshEntity(npc);
                                         player.sendMessage(new StringTextComponent("§aNPC заспавнен!"), player.getUUID());
+                                    }
+                                    return 1;
+                                })
+                        )
+                )
+                // === КОМАНДА ДЛЯ ВЫДАЧИ ТОМОВ ===
+                .then(Commands.literal("tome")
+                        .then(Commands.argument("spell", StringArgumentType.string())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                    String spellId = StringArgumentType.getString(context, "spell");
+
+                                    if (player != null) {
+                                        Spell spell = Spell.byId(spellId.toLowerCase());
+
+                                        ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+                                        CompoundNBT nbt = tome.getOrCreateTag();
+                                        nbt.putString("SpellId", spell.getId());
+                                        nbt.putInt("SpellLevel", spell.getDefaultLevel());
+
+                                        player.inventory.add(tome);
+                                        player.sendMessage(new StringTextComponent("§aВыдан Том: " + spell.getName() + " (Уровень " + spell.getDefaultLevel() + ")"), player.getUUID());
                                     }
                                     return 1;
                                 })

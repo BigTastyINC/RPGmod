@@ -58,5 +58,8 @@
 
   "item.examplemod.small_magic_crystal": "Малый магический кристалл",
   "item.examplemod.medium_magic_crystal": "Средний магический кристалл",
-  "item.examplemod.large_magic_crystal": "Большой магический кристалл"
+  "item.examplemod.large_magic_crystal": "Большой магический кристалл",
+
+  "item.examplemod.spell_tome": "Том обучения",
+  "item.examplemod.spell_book": "Книга заклинаний"
 }

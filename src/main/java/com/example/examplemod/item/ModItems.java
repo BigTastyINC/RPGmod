@@ -9,8 +9,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 public class ModItems {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, "examplemod");
 
+    // --- КНИГИ ---
     public static final RegistryObject<Item> STATS_BOOK = ITEMS.register("stats_book",
             () -> new StatsBookItem(new Item.Properties().stacksTo(1).tab(ModItemGroup.INSTANCE)));
+
+    public static final RegistryObject<Item> SPELL_TOME = ITEMS.register("spell_tome",
+            () -> new SpellTomeItem(new Item.Properties().stacksTo(1).tab(ModItemGroup.INSTANCE)));
 
     // --- МАГИЧЕСКИЕ КРИСТАЛЛЫ ---
     public static final RegistryObject<Item> SMALL_MAGIC_CRYSTAL = ITEMS.register("small_magic_crystal",

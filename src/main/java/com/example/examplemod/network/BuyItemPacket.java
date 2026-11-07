@@ -41,7 +41,11 @@ public class BuyItemPacket {
                 }
                 ShopUtils.setFromTotalCopper(data, total - msg.price);
                 player.inventory.add(msg.stack.copy());
-                player.sendMessage(new StringTextComponent("§aКуплено: " + msg.stack.getDisplayName().getString() + " за " + msg.price + " меди"), player.getUUID());
+
+                // ИСПРАВЛЕНО: Теперь используем ShopUtils.formatPrice
+                String formattedPrice = ShopUtils.formatPrice(msg.price);
+                player.sendMessage(new StringTextComponent("§aКуплено: " + msg.stack.getDisplayName().getString() + " за §6" + formattedPrice), player.getUUID());
+
                 NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                 data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),

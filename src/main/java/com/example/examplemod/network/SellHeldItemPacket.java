@@ -21,25 +21,40 @@ public class SellHeldItemPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayerEntity player = ctx.get().getSender();
             if (player == null) return;
+
             ItemStack held = player.getMainHandItem();
             if (held.isEmpty()) {
                 player.sendMessage(new StringTextComponent("§cВозьмите предмет в руку!"), player.getUUID());
                 return;
             }
-            // Еду продавать нельзя
+
+            // Еду продавать нельзя (по твоему правилу)
             if (held.getItem().isEdible()) {
                 player.sendMessage(new StringTextComponent("§cТорговцы не покупают еду. Её можно только купить."), player.getUUID());
                 return;
             }
+
+            // Проверка на уровень предмета
             if (!held.hasTag() || !held.getTag().contains("ItemLevel")) {
                 player.sendMessage(new StringTextComponent("§cЭтот предмет не имеет уровня, торговцы такое не берут!"), player.getUUID());
                 return;
             }
-            int price = ShopUtils.calcSellPrice(held);
+
+            int count = held.getCount();
+            int pricePerItem = ShopUtils.calcSellPrice(held);
+            int totalPrice = pricePerItem * count; // Считаем за всю стопку
+
             player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                data.addCoins(price);
-                held.shrink(1);
-                player.sendMessage(new StringTextComponent("§aПродано за " + price + " меди"), player.getUUID());
+                data.addCoins(totalPrice);
+
+                // Удаляем всю стопку из руки
+                player.setItemInHand(net.minecraft.util.Hand.MAIN_HAND, ItemStack.EMPTY);
+
+                // Красивое сообщение (с форматом цены)
+                String formattedPrice = ShopUtils.formatPrice(totalPrice);
+                player.sendMessage(new StringTextComponent("§aПродано §e" + count + " шт. §aза §6" + formattedPrice), player.getUUID());
+
+                // Синхронизация
                 NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
                         new SyncLevelPacket(data.getLevel(), data.getXp(), data.getStatPoints(),
                                 data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(),

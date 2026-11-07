@@ -54,5 +54,8 @@
   "item.examplemod.health_potion": "Health Potion",
 
   "key.examplemod.stats": "Open Stats",
-  "key.categories.examplemod": "RPG Mod"
+  "key.categories.examplemod": "RPG Mod",
+
+  "item.examplemod.spell_tome": "Spell Tome",
+  "item.examplemod.spell_book": "Spell Book"
 }
