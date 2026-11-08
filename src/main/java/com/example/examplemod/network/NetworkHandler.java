@@ -22,6 +22,8 @@ public class NetworkHandler {
         INSTANCE.registerMessage(id++, SellHeldItemPacket.class, SellHeldItemPacket::encode, SellHeldItemPacket::decode, SellHeldItemPacket::handle);
         INSTANCE.registerMessage(id++, OpenSpellBookGuiPacket.class, OpenSpellBookGuiPacket::encode, OpenSpellBookGuiPacket::decode, OpenSpellBookGuiPacket::handle);
         INSTANCE.registerMessage(id++, SellSlotsPacket.class, SellSlotsPacket::encode, SellSlotsPacket::decode, SellSlotsPacket::handle);
-        INSTANCE.registerMessage(id++, SyncBuffPacket.class, SyncBuffPacket::encode, SyncBuffPacket::decode, SyncBuffPacket::handle); // НОВЫЙ ПАКЕТ
+        INSTANCE.registerMessage(id++, SyncBuffPacket.class, SyncBuffPacket::encode, SyncBuffPacket::decode, SyncBuffPacket::handle);
+        // НОВЫЙ ПАКЕТ
+        INSTANCE.registerMessage(id++, SyncOtherPlayerLevelPacket.class, SyncOtherPlayerLevelPacket::encode, SyncOtherPlayerLevelPacket::decode, SyncOtherPlayerLevelPacket::handle);
     }
 }

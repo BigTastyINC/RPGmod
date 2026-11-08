@@ -33,28 +33,26 @@ public class InventoryCoinRenderer {
         MatrixStack ms = event.getMatrixStack();
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-            int startX = left + 85;
-            int startY = top + 168;
+            // ИСПРАВЛЕНИЕ: Подняли монеты выше и сдвинули левее, чтобы тултип их не перекрывал
+            int startX = left + 80;
+            int startY = top + 155;
 
             float scale = 0.5f;
             int spacing = 28;
 
-            // === НОВОЕ: РИСУЕМ ФОН ПОД МОНЕТЫ ===
+            // Фон
             int bgX = startX - 4;
             int bgY = startY - 4;
             int bgWidth = 88;
             int bgHeight = 18;
 
-            // Темный фон
             AbstractGui.fill(ms, bgX, bgY, bgX + bgWidth, bgY + bgHeight, 0xFF373737);
-            // Светлая рамка (сверху и слева)
             AbstractGui.fill(ms, bgX, bgY, bgX + bgWidth, bgY + 1, 0xFF8B8B8B);
             AbstractGui.fill(ms, bgX, bgY, bgX + 1, bgY + bgHeight, 0xFF8B8B8B);
-            // Темная рамка (снизу и справа)
             AbstractGui.fill(ms, bgX, bgY + bgHeight - 1, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
             AbstractGui.fill(ms, bgX + bgWidth - 1, bgY, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
 
-            // === 1. ЗОЛОТО ===
+            // Золото
             ms.pushPose();
             ms.translate(startX, startY, 0);
             ms.scale(scale, scale, 1.0f);
@@ -63,7 +61,7 @@ public class InventoryCoinRenderer {
             ms.popPose();
             mc.font.drawShadow(ms, "" + data.getGold(), startX + 10, startY, 0xFFFF55);
 
-            // === 2. СЕРЕБРО ===
+            // Серебро
             ms.pushPose();
             ms.translate(startX + spacing, startY, 0);
             ms.scale(scale, scale, 1.0f);
@@ -72,7 +70,7 @@ public class InventoryCoinRenderer {
             ms.popPose();
             mc.font.drawShadow(ms, "" + data.getSilver(), startX + spacing + 10, startY, 0xAAAAAA);
 
-            // === 3. МЕДЬ ===
+            // Медь
             ms.pushPose();
             ms.translate(startX + (spacing * 2), startY, 0);
             ms.scale(scale, scale, 1.0f);

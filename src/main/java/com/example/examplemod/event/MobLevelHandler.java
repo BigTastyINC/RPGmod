@@ -23,22 +23,11 @@ public class MobLevelHandler {
         if (!(event.getWorld() instanceof ServerWorld)) return;
 
         MobEntity mob = (MobEntity) event.getEntity();
-        if (mob.hasCustomName()) return;
 
-        // Жители (NPC) без редкости
-        if (mob instanceof VillagerEntity) {
-            double dxV = mob.getX() - 0.0;
-            double dyV = mob.getY() - 64.0;
-            double dzV = mob.getZ() - 0.0;
-            double distanceV = Math.sqrt(dxV * dxV + dyV * dyV + dzV * dzV);
-            int levelV = 1 + (int) (distanceV / 45.0);
+        // ИСПРАВЛЕНИЕ: Жителей и NPC трогать нельзя, их обрабатывает NpcSpawnHandler
+        if (mob instanceof VillagerEntity) return;
 
-            String finalNameV = "§7[Lvl " + levelV + "] " + mob.getName().getString();
-            mob.setCustomName(new StringTextComponent(finalNameV));
-            mob.setCustomNameVisible(true);
-            mob.getPersistentData().putInt("RpgMobLevel", levelV);
-            return;
-        }
+        if (mob.getPersistentData().contains("RpgMobRarity")) return;
 
         double dx = mob.getX() - 0.0;
         double dy = mob.getY() - 64.0;
@@ -86,15 +75,11 @@ public class MobLevelHandler {
 
         String levelPrefix = "§7[Lvl " + level + "] ";
         String finalName;
-
-        // Имя моба
         String mobName = mob.getName().getString();
 
         if (mob instanceof AnimalEntity) {
-            // Животные: [Lvl 20] Лошадь ★★
             finalName = levelPrefix + mobName + rarity.getStars();
         } else {
-            // Монстры: [Lvl 20] Зомби [Лорд]
             String prefix = rarity.getPrefix();
             if (!prefix.isEmpty()) {
                 finalName = levelPrefix + mobName + " " + prefix;
