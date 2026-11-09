@@ -44,22 +44,20 @@ public class NpcInteractHandler {
         if (!(event.getPlayer() instanceof ServerPlayerEntity)) return;
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
 
-        // 1. Пытаемся взять уровень из памяти
         int npcLevel = villager.getPersistentData().getInt("RpgNpcLevel");
 
-        // 2. Если памяти нет (старый NPC), парсим имя "[Lvl 139] Маг"
         if (npcLevel <= 0) {
-            if (name.startsWith("[Lvl ")) {
-                int end = name.indexOf("]");
-                if (end > 5) {
+            int start = name.indexOf("[Lvl ");
+            if (start != -1) {
+                int end = name.indexOf("]", start);
+                if (end > start + 5) {
                     try {
-                        npcLevel = Integer.parseInt(name.substring(5, end));
+                        npcLevel = Integer.parseInt(name.substring(start + 5, end));
                     } catch (Exception ignored) {}
                 }
             }
         }
 
-        // 3. Защита от нуля
         if (npcLevel <= 0) npcLevel = 1;
 
         long timeWindow = player.level.getGameTime() / REFRESH_TIME_TICKS;
@@ -70,17 +68,23 @@ public class NpcInteractHandler {
         List<Integer> prices = new ArrayList<>();
 
         final int finalNpcLevel = npcLevel;
+        final int finalMerchantType = merchantType;
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             for (int i = 0; i < 5; i++) {
-                // Используем уровень NPC
                 int level = Math.max(1, finalNpcLevel + rand.nextInt(21) - 10);
 
-                // Шанс на Эпик растет с уровнем NPC
-                int epicChance = Math.min(20, 7 + (finalNpcLevel / 10));
-                int rarity = rand.nextInt(100) < epicChance ? 4 : rand.nextInt(4);
+                int rarity;
+                if (finalMerchantType == 0 || finalMerchantType == 1) {
+                    // НОВОЕ: Оружейник (0) и Бронник (1) — только Common (0), Uncommon (1), Rare (2)
+                    rarity = rand.nextInt(3);
+                } else {
+                    // Маг (2) и Глава Гильдии (3) — обычная система с шансом на Legendary
+                    int epicChance = Math.min(20, 7 + (finalNpcLevel / 10));
+                    rarity = rand.nextInt(100) < epicChance ? 4 : rand.nextInt(4);
+                }
 
-                ItemStack stack = ShopUtils.generateItemForMerchant(rand, merchantType, level, rarity);
+                ItemStack stack = ShopUtils.generateItemForMerchant(rand, finalMerchantType, level, rarity);
                 int price = ShopUtils.calcBuyPrice(stack);
                 items.add(stack);
                 prices.add(price);

@@ -6,7 +6,7 @@ import com.example.examplemod.item.Rarity;
 import com.example.examplemod.profession.RarityRoller;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.monster.SkeletonEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
@@ -35,28 +35,89 @@ public class MobDropHandler {
         int mobLevel = mob.getPersistentData().getInt("RpgMobLevel");
         if (mobLevel <= 0) mobLevel = 1;
 
-        // ===== 1. ЛОГИКА ДЛЯ ЖИВОТНЫХ (Мясо) =====
-        if (mob instanceof AnimalEntity) {
+        // ===== 1. ДРОП ТОМА ТЕЛЕПОРТА С ЛОРДОВ (Шанс 2%) =====
+        if (mobRarity == MobRarity.LORD && RANDOM.nextFloat() < 0.02f) {
+            ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+            CompoundNBT nbt = tome.getOrCreateTag();
+            nbt.putString("SpellId", "teleport_ore");
+            nbt.putInt("SpellLevel", 4);
+
+            ItemEntity drop = new ItemEntity(mob.level, mob.getX(), mob.getY(), mob.getZ(), tome);
+            event.getDrops().add(drop);
+        }
+
+        // ===== 2. ДРОП ТОМА КРАФТА РЕЛИКВИИ (Шанс 1%, Лорд 150+ ур.) =====
+        if (mobRarity == MobRarity.LORD && mobLevel >= 150 && RANDOM.nextFloat() < 0.01f) {
+            ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+            CompoundNBT nbt = tome.getOrCreateTag();
+            nbt.putString("SpellId", "craft_relic");
+            nbt.putInt("SpellLevel", 5);
+
+            ItemEntity drop = new ItemEntity(mob.level, mob.getX(), mob.getY(), mob.getZ(), tome);
+            event.getDrops().add(drop);
+        }
+
+        // ===== 3. ДРОП ТОМА ПРИЗЫВА ТОРГОВЦА =====
+        boolean isLeader = mobRarity == MobRarity.LEADER;
+        boolean isLord = mobRarity == MobRarity.LORD;
+
+        if (isLeader) {
+            // С Предводителей 10%
+            if (RANDOM.nextFloat() < 0.10f) {
+                ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+                CompoundNBT nbt = tome.getOrCreateTag();
+                nbt.putString("SpellId", "summon_merchant");
+                nbt.putInt("SpellLevel", 1);
+
+                ItemEntity drop = new ItemEntity(mob.level, mob.getX(), mob.getY(), mob.getZ(), tome);
+                event.getDrops().add(drop);
+            }
+        } else if (!isLord) {
+            // С обычных мобов (все, кроме Лордов и Предводителей) 5%
+            if (RANDOM.nextFloat() < 0.05f) {
+                ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+                CompoundNBT nbt = tome.getOrCreateTag();
+                nbt.putString("SpellId", "summon_merchant");
+                nbt.putInt("SpellLevel", 1);
+
+                ItemEntity drop = new ItemEntity(mob.level, mob.getX(), mob.getY(), mob.getZ(), tome);
+                event.getDrops().add(drop);
+            }
+        }
+
+        // ===== 4. ДРОП ТОМА ПРИЗЫВА НЕЖИТИ (Скелет-Лорд 50+ ур., шанс 10%) =====
+        if (mob instanceof SkeletonEntity && mobRarity == MobRarity.LORD && mobLevel >= 50) {
+            if (RANDOM.nextFloat() < 0.10f) {
+                ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+                CompoundNBT nbt = tome.getOrCreateTag();
+                nbt.putString("SpellId", "summon_undead");
+                nbt.putInt("SpellLevel", 1);
+
+                ItemEntity drop = new ItemEntity(mob.level, mob.getX(), mob.getY(), mob.getZ(), tome);
+                event.getDrops().add(drop);
+            }
+        }
+
+        // ===== 5. ЛОГИКА ДЛЯ ЖИВОТНЫХ (Мясо) =====
+        if (mob instanceof net.minecraft.entity.passive.AnimalEntity) {
             for (ItemEntity dropEntity : event.getDrops()) {
                 ItemStack stack = dropEntity.getItem();
 
-                // Если выпадает еда (сырое мясо)
                 if (stack.getItem().isEdible()) {
                     CompoundNBT nbt = stack.getOrCreateTag();
                     nbt.putInt("ItemLevel", mobLevel);
 
-                    int meatRarityIndex = 0; // По умолчанию обычное (0)
+                    int meatRarityIndex = 0;
                     int roll = RANDOM.nextInt(100);
 
-                    // ТВОЯ МАТЕМАТИКА ШАНСОВ
                     if (mobRarity == MobRarity.UNCOMMON) {
-                        meatRarityIndex = (roll < 90) ? 1 : 0; // 90% необычное, 10% обычное
+                        meatRarityIndex = (roll < 90) ? 1 : 0;
                     } else if (mobRarity == MobRarity.RARE) {
-                        meatRarityIndex = (roll < 90) ? 2 : 1; // 90% редкое, 10% необычное
+                        meatRarityIndex = (roll < 90) ? 2 : 1;
                     } else if (mobRarity == MobRarity.EPIC) {
-                        meatRarityIndex = (roll < 90) ? 3 : 2; // 90% эпическое, 10% редкое
+                        meatRarityIndex = (roll < 90) ? 3 : 2;
                     } else if (mobRarity == MobRarity.LEGENDARY) {
-                        meatRarityIndex = (roll < 40) ? 4 : 3; // 40% легендарное, 60% эпическое
+                        meatRarityIndex = (roll < 40) ? 4 : 3;
                     }
 
                     nbt.putInt("RarityLevel", meatRarityIndex);
@@ -64,7 +125,7 @@ public class MobDropHandler {
             }
         }
 
-        // ===== 2. СТАРАЯ ЛОГИКА ДЛЯ КРИСТАЛЛОВ =====
+        // ===== 6. ДРОП КРИСТАЛЛОВ =====
         if (RANDOM.nextFloat() < 0.40f) {
             Rarity crystalRarity = RarityRoller.roll(mobLevel);
 

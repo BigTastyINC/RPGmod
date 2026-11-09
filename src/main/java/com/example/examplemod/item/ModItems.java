@@ -16,6 +16,9 @@ public class ModItems {
     public static final RegistryObject<Item> SPELL_TOME = ITEMS.register("spell_tome",
             () -> new SpellTomeItem(new Item.Properties().stacksTo(1).tab(ModItemGroup.INSTANCE)));
 
+    public static final RegistryObject<Item> SPELL_SCROLL = ITEMS.register("spell_scroll",
+            () -> new SpellScrollItem(new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
+
     // --- МАГИЧЕСКИЕ КРИСТАЛЛЫ ---
     public static final RegistryObject<Item> SMALL_MAGIC_CRYSTAL = ITEMS.register("small_magic_crystal",
             () -> new Item(new Item.Properties().tab(ModItemGroup.INSTANCE)));
@@ -82,7 +85,14 @@ public class ModItems {
     public static final RegistryObject<Item> HEALTH_POTION = ITEMS.register("health_potion",
             () -> new RpgPotionItem(false, new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
 
-    // НОВОЕ: ЗОЛОТОЕ ЗЕЛЬЕ
     public static final RegistryObject<Item> LUCK_POTION = ITEMS.register("luck_potion",
             () -> new LuckPotionItem(new Item.Properties().stacksTo(16).tab(ModItemGroup.INSTANCE)));
+
+    // --- ПОСОХИ (множитель урона + прочность) ---
+    public static final RegistryObject<Item> SMALL_STAFF = ITEMS.register("small_staff",
+            () -> new StaffItem(1.0f, new Item.Properties().defaultDurability(500).tab(ModItemGroup.INSTANCE)));
+    public static final RegistryObject<Item> MEDIUM_STAFF = ITEMS.register("medium_staff",
+            () -> new StaffItem(1.5f, new Item.Properties().defaultDurability(1000).tab(ModItemGroup.INSTANCE)));
+    public static final RegistryObject<Item> LARGE_STAFF = ITEMS.register("large_staff",
+            () -> new StaffItem(2.0f, new Item.Properties().defaultDurability(2000).tab(ModItemGroup.INSTANCE)));
 }

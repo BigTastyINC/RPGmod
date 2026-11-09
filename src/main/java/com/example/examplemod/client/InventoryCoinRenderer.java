@@ -5,12 +5,20 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.container.Slot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Mod.EventBusSubscriber(modid = "examplemod", value = Dist.CLIENT)
 public class InventoryCoinRenderer {
@@ -23,24 +31,22 @@ public class InventoryCoinRenderer {
     public static void onDrawScreen(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (!(event.getGui() instanceof InventoryScreen)) return;
 
+        InventoryScreen inv = (InventoryScreen) event.getGui();
         Minecraft mc = Minecraft.getInstance();
         PlayerEntity player = mc.player;
         if (player == null) return;
 
-        InventoryScreen inv = (InventoryScreen) event.getGui();
-        int left = inv.getGuiLeft();
-        int top = inv.getGuiTop();
         MatrixStack ms = event.getMatrixStack();
 
+        // 1. Рисуем монеты под инвентарём (в правом нижнем углу)
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-            // ИСПРАВЛЕНИЕ: Подняли монеты выше и сдвинули левее, чтобы тултип их не перекрывал
-            int startX = left + 80;
-            int startY = top + 155;
+            // ИСПРАВЛЕНО: Сдвинули вправо (+84 вместо +48)
+            int startX = inv.getGuiLeft() + 84;
+            int startY = inv.getGuiTop() + 166 + 5;
 
             float scale = 0.5f;
             int spacing = 28;
 
-            // Фон
             int bgX = startX - 4;
             int bgY = startY - 4;
             int bgWidth = 88;
@@ -52,7 +58,6 @@ public class InventoryCoinRenderer {
             AbstractGui.fill(ms, bgX, bgY + bgHeight - 1, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
             AbstractGui.fill(ms, bgX + bgWidth - 1, bgY, bgX + bgWidth, bgY + bgHeight, 0xFF000000);
 
-            // Золото
             ms.pushPose();
             ms.translate(startX, startY, 0);
             ms.scale(scale, scale, 1.0f);
@@ -61,7 +66,6 @@ public class InventoryCoinRenderer {
             ms.popPose();
             mc.font.drawShadow(ms, "" + data.getGold(), startX + 10, startY, 0xFFFF55);
 
-            // Серебро
             ms.pushPose();
             ms.translate(startX + spacing, startY, 0);
             ms.scale(scale, scale, 1.0f);
@@ -70,7 +74,6 @@ public class InventoryCoinRenderer {
             ms.popPose();
             mc.font.drawShadow(ms, "" + data.getSilver(), startX + spacing + 10, startY, 0xAAAAAA);
 
-            // Медь
             ms.pushPose();
             ms.translate(startX + (spacing * 2), startY, 0);
             ms.scale(scale, scale, 1.0f);
@@ -79,5 +82,20 @@ public class InventoryCoinRenderer {
             ms.popPose();
             mc.font.drawShadow(ms, "" + data.getCopper(), startX + (spacing * 2) + 10, startY, 0xFFAA00);
         });
+
+        // 2. Перерисовываем тултип ПОВЕРХ монет, если курсор наведён на предмет
+        Slot slot = inv.getSlotUnderMouse();
+        if (slot != null && slot.hasItem()) {
+            ItemStack item = slot.getItem();
+
+            ITooltipFlag flag = mc.options.advancedItemTooltips ? ITooltipFlag.TooltipFlags.ADVANCED : ITooltipFlag.TooltipFlags.NORMAL;
+            List<ITextComponent> lines = item.getTooltipLines(player, flag);
+
+            List<IReorderingProcessor> tooltip = lines.stream()
+                    .map(ITextComponent::getVisualOrderText)
+                    .collect(Collectors.toList());
+
+            inv.renderTooltip(ms, tooltip, event.getMouseX(), event.getMouseY());
+        }
     }
 }

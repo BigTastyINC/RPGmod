@@ -57,13 +57,21 @@ public class NpcSpawnHandler {
             }
         }
 
-        if (RANDOM.nextInt(100) >= NPC_CHANCE_PERCENT) return;
-
         int level = calculateLevel(villager);
-
-        // СОХРАНЯЕМ УРОВЕНЬ NPC В ЕГО ПАМЯТЬ
         villager.getPersistentData().putInt("RpgNpcLevel", level);
 
+        // НОВОЕ: Если житель обычный (60% шанс) - просто даем ему уровень в имени
+        if (RANDOM.nextInt(100) >= NPC_CHANCE_PERCENT) {
+            // Проверяем, нет ли уже тега уровня
+            if (!villager.hasCustomName() || !villager.getCustomName().getString().contains("[Lvl ")) {
+                String baseName = villager.getName().getString();
+                villager.setCustomName(new StringTextComponent("§7[Lvl " + level + "] §f" + baseName));
+                villager.setCustomNameVisible(true);
+            }
+            return; // Выходим, не превращая его в торговца
+        }
+
+        // --- Логика для особых NPC (40% шанс) ---
         int type = RANDOM.nextInt(4);
         String npcBaseName;
         switch (type) {
@@ -93,11 +101,13 @@ public class NpcSpawnHandler {
     private static int calculateLevel(VillagerEntity villager) {
         if (villager.hasCustomName()) {
             String name = villager.getCustomName().getString();
-            if (name.startsWith("[Lvl ")) {
-                int end = name.indexOf("]");
-                if (end > 5) {
+            // ИСПРАВЛЕНИЕ: Ищем "[Lvl " в любом месте строки (на случай, если есть цветовые коды §7 впереди)
+            int start = name.indexOf("[Lvl ");
+            if (start != -1) {
+                int end = name.indexOf("]", start);
+                if (end > start + 5) {
                     try {
-                        return Integer.parseInt(name.substring(5, end));
+                        return Integer.parseInt(name.substring(start + 5, end));
                     } catch (NumberFormatException ignored) {}
                 }
             }

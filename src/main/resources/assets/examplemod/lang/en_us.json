@@ -2,6 +2,8 @@
   "itemGroup.examplemod": "RPG Mod",
 
   "item.examplemod.stats_book": "Stats Book",
+  "item.examplemod.spell_tome": "Spell Tome",
+  "item.examplemod.spell_scroll": "Spell Scroll",
 
   "item.examplemod.small_magic_crystal": "Small Magic Crystal",
   "item.examplemod.medium_magic_crystal": "Medium Magic Crystal",
@@ -52,11 +54,30 @@
 
   "item.examplemod.mana_potion": "Mana Potion",
   "item.examplemod.health_potion": "Health Potion",
+  "item.examplemod.luck_potion": "Profession Luck Potion",
+
+  "item.examplemod.small_staff": "Small Staff",
+  "item.examplemod.medium_staff": "Medium Staff",
+  "item.examplemod.large_staff": "Large Staff",
+
+  "block.examplemod.silver_ore": "Silver Ore",
+  "block.examplemod.cobalt_ore": "Cobalt Ore",
+  "block.examplemod.mithril_ore": "Mithril Ore",
+  "block.examplemod.adamantium_ore": "Adamantium Ore",
+  "block.examplemod.orichalcum_ore": "Orichalcum Ore",
+
+  "entity.examplemod.rpg_fireball": "Fireball",
+  "entity.examplemod.rpg_frostbolt": "Frostbolt",
+
+  "spell.examplemod.fireball": "Fireball",
+  "spell.examplemod.heal": "Heal",
+  "spell.examplemod.frostbolt": "Frostbolt",
+  "spell.examplemod.teleport_ore": "Ore Teleport",
 
   "key.examplemod.stats": "Open Stats",
   "key.categories.examplemod": "RPG Mod",
-
-  "item.examplemod.spell_tome": "Spell Tome",
-  "item.examplemod.spell_book": "Spell Book",
-  "item.examplemod.luck_potion": "Profession Luck Potion"
+  "block.examplemod.quest_board": "Quest Board",
+  "entity.examplemod.summoned_skeleton_archer": "Skeleton Archer (Summoned)",
+  "entity.examplemod.summoned_skeleton_warrior": "Skeleton Warrior (Summoned)",
+  "entity.examplemod.summoned_zombie": "Zombie (Summoned)"
 }

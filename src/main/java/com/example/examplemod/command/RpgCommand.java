@@ -70,6 +70,40 @@ public class RpgCommand {
                                 })
                         )
                 )
+                // === НОВОЕ: КОМАНДА ДЛЯ РАНГА МАГА ===
+                .then(Commands.literal("mage")
+                        .then(Commands.argument("rank", IntegerArgumentType.integer(0, 5))
+                                .executes(context -> {
+                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                    int rank = IntegerArgumentType.getInteger(context, "rank");
+                                    if (player != null) {
+                                        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                                            data.setMageRank(rank);
+                                            player.sendMessage(new StringTextComponent("§dРанг мага установлен на: §e" + rank), player.getUUID());
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), PlayerEventHandler.buildSyncPacket(data));
+                                        });
+                                    }
+                                    return 1;
+                                })
+                        )
+                )
+                // === НОВОЕ: КОМАНДА ДЛЯ ОПЫТА МАГА ===
+                .then(Commands.literal("magexp")
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                    ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                                    int amount = IntegerArgumentType.getInteger(context, "amount");
+                                    if (player != null) {
+                                        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                                            data.addMageXp(amount);
+                                            player.sendMessage(new StringTextComponent("§dДобавлено §e" + amount + " §dопыта мага!"), player.getUUID());
+                                            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), PlayerEventHandler.buildSyncPacket(data));
+                                        });
+                                    }
+                                    return 1;
+                                })
+                        )
+                )
                 .then(Commands.literal("potion")
                         .then(Commands.argument("type", StringArgumentType.string())
                                 .then(Commands.argument("level", IntegerArgumentType.integer(1))
@@ -179,7 +213,20 @@ public class RpgCommand {
                                 })
                         )
                 )
-                // === КОМАНДА ДЛЯ ВЫДАЧИ ТОМОВ ===
+                .then(Commands.literal("tome_teleport")
+                        .executes(context -> {
+                            ServerPlayerEntity player = (ServerPlayerEntity) context.getSource().getEntity();
+                            if (player != null) {
+                                ItemStack tome = new ItemStack(ModItems.SPELL_TOME.get());
+                                CompoundNBT nbt = tome.getOrCreateTag();
+                                nbt.putString("SpellId", "teleport_ore");
+                                nbt.putInt("SpellLevel", 4);
+                                player.inventory.add(tome);
+                                player.sendMessage(new StringTextComponent("§aВыдан Том: Телепорт руды (Уровень 4)"), player.getUUID());
+                            }
+                            return 1;
+                        })
+                )
                 .then(Commands.literal("tome")
                         .then(Commands.argument("spell", StringArgumentType.string())
                                 .executes(context -> {

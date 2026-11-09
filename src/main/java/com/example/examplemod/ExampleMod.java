@@ -2,9 +2,9 @@ package com.example.examplemod;
 
 import com.example.examplemod.block.ModBlocks;
 import com.example.examplemod.capability.ModCapabilities;
-import com.example.examplemod.client.ClientSetup;
 import com.example.examplemod.command.RpgCommand;
 import com.example.examplemod.container.ModContainers;
+import com.example.examplemod.entity.ModEntities;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.network.NetworkHandler;
 import net.minecraft.block.Block;
@@ -14,9 +14,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
@@ -28,11 +26,12 @@ public class ExampleMod {
 
     public ExampleMod() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
 
+        // Регистрация DeferredRegister
         ModItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        ModBlocks.BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        ModBlocks.BLOCKS.register(FMLJavaModLoadingContext.get().getModEventBus()); // <--- ВАЖНО!
         ModContainers.CONTAINERS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        ModEntities.ENTITIES.register(FMLJavaModLoadingContext.get().getModEventBus());
 
         MinecraftForge.EVENT_BUS.register(this);
 
@@ -62,16 +61,9 @@ public class ExampleMod {
     }
 
     private void setup(final FMLCommonSetupEvent event) {
-        // ИСПРАВЛЕНИЕ: Снимаем лимит именно здесь, после загрузки атрибутов
         removeHealthLimit();
         ModCapabilities.register();
         NetworkHandler.register();
-    }
-
-    private void doClientStuff(final FMLClientSetupEvent event) {
-        event.enqueueWork(() -> {
-            DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT, () -> ClientSetup::init);
-        });
     }
 
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)

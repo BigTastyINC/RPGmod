@@ -31,15 +31,27 @@ public class SpellTomeItem extends Item {
             }
 
             playerIn.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                // Учим заклинание
+                // Проверяем, есть ли у игрока уже выученные заклинания (ДО изучения)
+                boolean isFirstSpell = data.getKnownSpells().isEmpty();
+
                 data.learnSpell(spellId, spellLevel);
                 Spell spell = Spell.byId(spellId);
 
-                playerIn.displayClientMessage(new StringTextComponent(
-                        "§aВы выучили заклинание: §e" + spell.getName() + " (Уровень " + spellLevel + "). §7Откройте инвентарь, чтобы увидеть Книгу Заклинаний!"
-                ), false);
+                if (isFirstSpell) {
+                    // Яркое сообщение для первого заклинания
+                    playerIn.displayClientMessage(new StringTextComponent(
+                            "§aВы выучили первое заклинание: §e" + spell.getName() + " (Уровень " + spellLevel + ")"
+                    ), false);
+                    playerIn.displayClientMessage(new StringTextComponent(
+                            "§6✦ Откройте инвентарь (§eE§6), чтобы увидеть §lКнигу Заклинаний§r §6в правой панели! ✦"
+                    ), false);
+                } else {
+                    // Обычное сообщение для последующих заклинаний
+                    playerIn.displayClientMessage(new StringTextComponent(
+                            "§aВы выучили заклинание: §e" + spell.getName() + " (Уровень " + spellLevel + ")"
+                    ), false);
+                }
 
-                // Забираем том после прочтения
                 if (!playerIn.abilities.instabuild) {
                     stack.shrink(1);
                 }

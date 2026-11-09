@@ -7,9 +7,9 @@ import com.example.examplemod.capability.PlayerLevelProvider;
 import com.example.examplemod.item.ItemStatHelper;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
+import com.example.examplemod.item.StaffItem;
 import com.example.examplemod.network.NetworkHandler;
 import com.example.examplemod.network.SyncLevelPacket;
-import com.example.examplemod.network.SyncOtherPlayerLevelPacket;
 import com.example.examplemod.profession.Profession;
 import com.example.examplemod.profession.ProfessionData;
 import com.example.examplemod.profession.RarityRoller;
@@ -19,6 +19,7 @@ import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
@@ -32,7 +33,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.network.PacketDistributor;
 
-import java.util.Map;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = "examplemod")
@@ -55,22 +55,6 @@ public class PlayerEventHandler {
             if (!event.getCapabilities().containsKey(new ResourceLocation("examplemod:player_level"))) {
                 event.addCapability(new ResourceLocation("examplemod:player_level"), new PlayerLevelProvider());
             }
-        }
-    }
-
-    // НОВОЕ: Синхронизация уровня, когда игрок начинает видеть другого
-    @SubscribeEvent
-    public static void onStartTracking(PlayerEvent.StartTracking event) {
-        if (event.getTarget() instanceof ServerPlayerEntity && event.getPlayer() instanceof ServerPlayerEntity) {
-            ServerPlayerEntity target = (ServerPlayerEntity) event.getTarget();
-            ServerPlayerEntity viewer = (ServerPlayerEntity) event.getPlayer();
-
-            target.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                NetworkHandler.INSTANCE.send(
-                        PacketDistributor.PLAYER.with(() -> viewer),
-                        new SyncOtherPlayerLevelPacket(target.getUUID(), data.getLevel())
-                );
-            });
         }
     }
 
@@ -115,15 +99,61 @@ public class PlayerEventHandler {
         if (!ItemStatHelper.isGear(craftedItem) && !ItemStatHelper.isPotion(craftedItem)) return;
 
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+
             if (ItemStatHelper.isPotion(craftedItem)) {
                 Profession prof = Profession.ALCHEMIST;
                 int xpGain = getProfessionXpWithBonus(player, data, 50);
+
                 boolean leveledUp = data.addProfessionXp(prof, xpGain);
                 int profLevel = data.getProfessionLevel(prof);
                 Rarity rarity = RarityRoller.roll(profLevel);
+
                 ItemStatHelper.applyPotionRarity(craftedItem, data.getLevel(), rarity);
-                player.displayClientMessage(new StringTextComponent("§aСоздано зелье: " + rarity.getColor() + "[" + rarity.getName() + "] §7ур. " + data.getLevel() + " §8| §7Алхимик: §e" + profLevel), false);
-                if (leveledUp) player.displayClientMessage(new StringTextComponent("§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel), false);
+
+                player.displayClientMessage(new StringTextComponent(
+                        "§aСоздано зелье: " + rarity.getColor() + "[" + rarity.getName() + "]"
+                                + " §7ур. " + data.getLevel()
+                                + " §8| §7Алхимик: §e" + profLevel
+                ), false);
+
+                if (leveledUp) {
+                    player.displayClientMessage(new StringTextComponent(
+                            "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
+                    ), false);
+                }
+
+                syncData(player, data);
+                return;
+            }
+
+            if (ItemStatHelper.isStaff(craftedItem)) {
+                Profession prof = Profession.ALCHEMIST;
+                int xpGain = getProfessionXpWithBonus(player, data, 100);
+
+                boolean leveledUp = data.addProfessionXp(prof, xpGain);
+                int profLevel = data.getProfessionLevel(prof);
+                Rarity rarity = RarityRoller.roll(profLevel);
+
+                ItemStatHelper.generateStatsWithRarity(craftedItem, data.getLevel(), rarity);
+
+                int staffEnergy = calculateStaffEnergyFromCrafting(event.getInventory(), craftedItem);
+                CompoundNBT staffNbt = craftedItem.getOrCreateTag();
+                staffNbt.putInt("StaffEnergy", staffEnergy);
+                craftedItem.setDamageValue(0);
+
+                player.displayClientMessage(new StringTextComponent(
+                        "§aСоздан посох: " + rarity.getColor() + "[" + rarity.getName() + "]"
+                                + " §7ур. " + data.getLevel()
+                                + " §8| §7Алхимик: §e" + profLevel
+                                + " §8| §dЭнергия: §e" + staffEnergy
+                ), false);
+
+                if (leveledUp) {
+                    player.displayClientMessage(new StringTextComponent(
+                            "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
+                    ), false);
+                }
+
                 syncData(player, data);
                 return;
             }
@@ -131,17 +161,54 @@ public class PlayerEventHandler {
             boolean isWeapon = ItemStatHelper.isWeapon(craftedItem);
             Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
             int xpGain = getProfessionXpWithBonus(player, data, isWeapon ? 100 : 50);
+
             boolean leveledUp = data.addProfessionXp(prof, xpGain);
             int profLevel = data.getProfessionLevel(prof);
             Rarity rarity = RarityRoller.roll(profLevel);
 
             ItemStatHelper.generateStatsWithRarity(craftedItem, data.getLevel(), rarity);
 
-            player.displayClientMessage(new StringTextComponent("§aСоздано: " + rarity.getColor() + "[" + rarity.getName() + "] §7ур. " + data.getLevel() + " §8| §7" + prof.getDisplayName() + ": §e" + profLevel + (profLevel >= prof.getMaxLevel() ? " §6(МАКС)" : "")), false);
-            if (leveledUp) player.displayClientMessage(new StringTextComponent("§6⬆ Профессия повышена: §e" + prof.getDisplayName() + " §7→ §e" + profLevel), false);
+            player.displayClientMessage(new StringTextComponent(
+                    "§aСоздано: " + rarity.getColor() + "[" + rarity.getName() + "]"
+                            + " §7ур. " + data.getLevel()
+                            + " §8| §7" + prof.getDisplayName() + ": §e" + profLevel
+                            + (profLevel >= prof.getMaxLevel() ? " §6(МАКС)" : "")
+            ), false);
+
+            if (leveledUp) {
+                player.displayClientMessage(new StringTextComponent(
+                        "§6⬆ Профессия повышена: §e" + prof.getDisplayName() + " §7→ §e" + profLevel
+                ), false);
+            }
 
             syncData(player, data);
         });
+    }
+
+    private static int calculateStaffEnergyFromCrafting(IInventory inv, ItemStack craftedItem) {
+        if (inv != null) {
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                ItemStack s = inv.getItem(i);
+                if (s.isEmpty()) continue;
+
+                if (s.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get()
+                        || s.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get()
+                        || s.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) {
+                    return getCrystalEnergy(s);
+                }
+            }
+        }
+        if (craftedItem.getItem() == ModItems.SMALL_STAFF.get()) return 500;
+        if (craftedItem.getItem() == ModItems.MEDIUM_STAFF.get()) return 1000;
+        return 2000;
+    }
+
+    private static int getCrystalEnergy(ItemStack crystal) {
+        CompoundNBT cn = crystal.getTag();
+        int cLevel = (cn != null && cn.contains("ItemLevel")) ? Math.max(1, cn.getInt("ItemLevel")) : 1;
+        int cRarity = (cn != null && cn.contains("RarityLevel")) ? Math.min(4, cn.getInt("RarityLevel")) : 0;
+        double mult = Rarity.values()[cRarity].getMultiplier();
+        return (int) (cLevel * 10 * mult);
     }
 
     @SubscribeEvent
@@ -157,9 +224,13 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             boolean changed = false;
 
-            if (player.tickCount % 100 == 0) syncData(player, data);
+            if (player.tickCount % 100 == 0) {
+                syncData(player, data);
+            }
+
             if (player.tickCount % 20 == 0) {
                 scanInventory(player, data);
+
                 if (data.getStaminaRegenDelay() > 0) {
                     data.setStaminaRegenDelay(data.getStaminaRegenDelay() - 20);
                     if (data.getStaminaRegenDelay() < 0) data.setStaminaRegenDelay(0);
@@ -168,28 +239,38 @@ public class PlayerEventHandler {
                     data.setStamina(data.getStamina() + regenAmount);
                     changed = true;
                 }
+
                 int manaRegenAmount = 1 + data.getManaRegen();
                 if (data.hasBuff(RpgBuffs.MANA_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.MANA_REGEN);
-                    if (player.level.getGameTime() < end) manaRegenAmount += (int) Math.ceil(data.getBuffPower(RpgBuffs.MANA_REGEN));
-                    else data.clearBuff(RpgBuffs.MANA_REGEN);
+                    if (player.level.getGameTime() < end) {
+                        manaRegenAmount += (int) Math.ceil(data.getBuffPower(RpgBuffs.MANA_REGEN));
+                    } else {
+                        data.clearBuff(RpgBuffs.MANA_REGEN);
+                    }
                 }
                 if (data.getMana() < data.getMaxMana()) {
                     data.setMana(data.getMana() + manaRegenAmount);
                     changed = true;
                 }
+
                 float healthRegenAmount = data.getHealthRegen() / 3.0f;
                 if (data.hasBuff(RpgBuffs.HEALTH_REGEN)) {
                     long end = data.getBuffEnd(RpgBuffs.HEALTH_REGEN);
-                    if (player.level.getGameTime() < end) healthRegenAmount += data.getBuffPower(RpgBuffs.HEALTH_REGEN);
-                    else data.clearBuff(RpgBuffs.HEALTH_REGEN);
+                    if (player.level.getGameTime() < end) {
+                        healthRegenAmount += data.getBuffPower(RpgBuffs.HEALTH_REGEN);
+                    } else {
+                        data.clearBuff(RpgBuffs.HEALTH_REGEN);
+                    }
                 }
                 if (healthRegenAmount > 0 && player.getHealth() < player.getMaxHealth()) {
                     player.heal(healthRegenAmount);
                     changed = true;
                 }
+
                 applyStats(player, data);
             }
+
             if (changed) syncData(player, data);
         });
     }
@@ -198,27 +279,60 @@ public class PlayerEventHandler {
         if (!(player instanceof ServerPlayerEntity)) return;
         ServerPlayerEntity sp = (ServerPlayerEntity) player;
         boolean modified = false;
+
         for (int i = 0; i < sp.inventory.getContainerSize(); i++) {
             ItemStack stack = sp.inventory.getItem(i);
+
+            if (ItemStatHelper.isStaff(stack)) {
+                CompoundNBT nbt = stack.getTag();
+
+                boolean needsEnergyFix = (nbt == null || !nbt.contains("StaffEnergy"))
+                        || (nbt.getInt("StaffEnergy") == 100);
+                if (needsEnergyFix) {
+                    int energy;
+                    if (stack.getItem() == ModItems.SMALL_STAFF.get()) energy = 500;
+                    else if (stack.getItem() == ModItems.MEDIUM_STAFF.get()) energy = 1000;
+                    else energy = 2000;
+
+                    CompoundNBT sNbt = stack.getOrCreateTag();
+                    sNbt.putInt("StaffEnergy", energy);
+                    stack.setDamageValue(0);
+                    modified = true;
+                }
+
+                if (nbt == null || !nbt.contains("ItemLevel")) {
+                    int profLevel = data.getProfessionLevel(Profession.ALCHEMIST);
+                    Rarity rarity = RarityRoller.roll(profLevel);
+                    ItemStatHelper.generateStatsWithRarity(stack, Math.max(1, data.getLevel()), rarity);
+                    modified = true;
+                }
+                continue;
+            }
+
             if (ItemStatHelper.isGear(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
                 boolean isWeapon = ItemStatHelper.isWeapon(stack);
                 Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
+
                 int profLevel = data.getProfessionLevel(prof);
                 Rarity rarity = RarityRoller.roll(profLevel);
-                ItemStatHelper.generateStatsWithRarity(stack, data.getLevel(), rarity);
+                ItemStatHelper.generateStatsWithRarity(stack, Math.max(1, data.getLevel()), rarity);
                 modified = true;
             }
+
             if (ItemStatHelper.isPotion(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
                 int profLevel = data.getProfessionLevel(Profession.ALCHEMIST);
                 Rarity rarity = RarityRoller.roll(profLevel);
-                ItemStatHelper.applyPotionRarity(stack, data.getLevel(), rarity);
+                ItemStatHelper.applyPotionRarity(stack, Math.max(1, data.getLevel()), rarity);
                 modified = true;
             }
-            if (FoodBuffHandler.isPreparedFood(stack.getItem()) && (!stack.hasTag() || !stack.getTag().contains("RarityLevel"))) {
+
+            if (FoodBuffHandler.isPreparedFood(stack.getItem())
+                    && (!stack.hasTag() || !stack.getTag().contains("RarityLevel"))) {
                 FoodBuffHandler.assignRarityIfFood(stack);
                 modified = true;
             }
         }
+
         if (modified) sp.containerMenu.broadcastChanges();
     }
 
@@ -241,7 +355,6 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             applyStats(player, data);
             syncData(player, data);
-            giveBook(player);
         });
     }
 
@@ -251,19 +364,7 @@ public class PlayerEventHandler {
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
             applyStats(player, data);
             syncData(player, data);
-            giveBook(player);
         });
-    }
-
-    private static void giveBook(PlayerEntity player) {
-        if (player instanceof ServerPlayerEntity) {
-            ServerPlayerEntity sp = (ServerPlayerEntity) player;
-            boolean hasBook = false;
-            for (int i = 0; i < sp.inventory.getContainerSize(); i++) {
-                if (sp.inventory.getItem(i).getItem() == ModItems.STATS_BOOK.get()) { hasBook = true; break; }
-            }
-            if (!hasBook) sp.inventory.add(new ItemStack(ModItems.STATS_BOOK.get()));
-        }
     }
 
     public static void applyStats(PlayerEntity player, IPlayerLevel data) {
@@ -321,7 +422,9 @@ public class PlayerEventHandler {
             }
         }
 
-        if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
+        if (player.getHealth() > player.getMaxHealth()) {
+            player.setHealth(player.getMaxHealth());
+        }
     }
 
     public static SyncLevelPacket buildSyncPacket(IPlayerLevel data) {
@@ -348,11 +451,6 @@ public class PlayerEventHandler {
             NetworkHandler.INSTANCE.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player),
                     buildSyncPacket(data)
-            );
-            // Также синхронизируем уровень с теми, кто нас видит
-            NetworkHandler.INSTANCE.send(
-                    PacketDistributor.TRACKING_ENTITY.with(() -> player),
-                    new SyncOtherPlayerLevelPacket(player.getUUID(), data.getLevel())
             );
         }
     }

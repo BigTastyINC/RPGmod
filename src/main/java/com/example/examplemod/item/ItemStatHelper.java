@@ -35,8 +35,12 @@ public class ItemStatHelper {
         return stack.getItem() instanceof ArmorItem;
     }
 
+    public static boolean isStaff(ItemStack stack) {
+        return stack.getItem() instanceof StaffItem;
+    }
+
     public static boolean isGear(ItemStack stack) {
-        return isWeapon(stack) || isArmor(stack);
+        return isWeapon(stack) || isArmor(stack) || isStaff(stack);
     }
 
     // НОВОЕ: Проверяем, является ли предмет нашим зельем
@@ -81,6 +85,14 @@ public class ItemStatHelper {
                 }
             }
             if (vit == 0) vit = 1;
+        } else if (isStaff(stack)) {
+            // Посохи дают Интеллект и Удачу
+            for (int i = 0; i < totalStatPoints; i++) {
+                if (rand.nextBoolean()) intel++;
+                else luck++;
+            }
+            if (intel == 0) intel = 1;
+            if (luck == 0) luck = 1;
         } else {
             for (int i = 0; i < totalStatPoints; i++) {
                 if (rand.nextBoolean()) str++;

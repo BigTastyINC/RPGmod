@@ -1,14 +1,29 @@
 package com.example.examplemod.shop;
 
+import com.example.examplemod.item.ItemStatHelper;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.item.SpellTomeItem;
 import com.example.examplemod.spells.Spell;
+import com.google.common.collect.Multimap;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ArmorItem;
+import net.minecraft.item.AxeItem;
+import net.minecraft.item.ElytraItem;
+import net.minecraft.item.HorseArmorItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.TridentItem;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class ShopUtils {
@@ -27,54 +42,54 @@ public class ShopUtils {
     }
 
     public static int calcSellPrice(ItemStack stack) {
-        // НОВОЕ: Зелье Удачи продается Магу за 1 серебро (100 меди)
-        if (stack.getItem() == ModItems.LUCK_POTION.get()) {
-            return 100;
-        }
-
-        // Томы продаются по фиксированной цене
-        if (stack.getItem() instanceof SpellTomeItem) {
-            return 500;
-        }
+        if (stack.getItem() == ModItems.LUCK_POTION.get()) return 100;
+        if (stack.getItem() instanceof SpellTomeItem) return 500;
 
         CompoundNBT nbt = stack.getTag();
         if (nbt == null || !nbt.contains("ItemLevel")) return 2;
+
+        // НОВОЕ: Уникальная цена реликвии
+        if (nbt.contains("RelicBasePrice")) {
+            int basePrice = nbt.getInt("RelicBasePrice");
+            int rarity = Math.min(4, nbt.getInt("RarityLevel"));
+            float mult = (float) Rarity.values()[rarity].getMultiplier();
+            return (int) (basePrice * mult);
+        }
 
         int level = nbt.getInt("ItemLevel");
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
         int stats = nbt.getInt("StatStrength") + nbt.getInt("StatDexterity")
                 + nbt.getInt("StatIntelligence") + nbt.getInt("StatLuck")
                 + nbt.getInt("StatVitality");
-        float matMult = getMaterialMultiplier(stack.getItem());
+        float matMult = getMaterialMultiplier(stack);
 
-        if (stack.getItem().isEdible()) {
-            return (level * 5 + rarity * 50) * 2;
-        }
-        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
-            return (level * 5 + rarity * 20) * 2;
-        }
+        if (stack.getItem().isEdible()) return (level * 5 + rarity * 50) * 2;
+        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) return (level * 5 + rarity * 20) * 2;
 
         if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get()) return (level * 2 + rarity * 10);
         if (stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get()) return (level * 5 + rarity * 25);
         if (stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) return (level * 10 + rarity * 60);
 
-        return (int) ((level * 3 + rarity * 20 + stats * 2) * matMult);
+        if (stack.getItem() instanceof com.example.examplemod.item.StaffItem) {
+            int energy = nbt.contains("StaffEnergy") ? nbt.getInt("StaffEnergy") : 500;
+            int base = (level * level * 3 / 7) + rarity * 20 + stats * 5;
+            float basePrice = base * matMult;
+            float energyBonus = (energy / 1000.0f) * 1500f;
+            return (int) (basePrice + energyBonus);
+        }
+
+        int base = (level * level * 3 / 7) + rarity * 20 + stats * 5;
+        return (int) (base * matMult);
     }
 
     public static int calcBuyPrice(ItemStack stack) {
-        // НОВОЕ: Маг продает Зелье Удачи за 3 золотых (30 000 меди)
-        if (stack.getItem() == ModItems.LUCK_POTION.get()) {
-            return 30000;
-        }
+        if (stack.getItem() == ModItems.LUCK_POTION.get()) return 30000;
 
         if (stack.getItem() instanceof SpellTomeItem) {
             CompoundNBT nbt = stack.getOrCreateTag();
             int spellLevel = nbt.getInt("SpellLevel");
-
             int price = 10000;
-            for (int i = 0; i < spellLevel; i++) {
-                price *= 10;
-            }
+            for (int i = 0; i < spellLevel; i++) price *= 10;
             return price;
         }
 
@@ -82,54 +97,91 @@ public class ShopUtils {
         int level = Math.max(1, nbt.getInt("ItemLevel"));
         int rarity = Math.min(4, nbt.getInt("RarityLevel"));
 
-        if (stack.getItem().isEdible()) {
-            return level * 30 + rarity * 300;
+        // НОВОЕ: Уникальная цена реликвии (покупка в 3 раза дороже продажи)
+        if (nbt.contains("RelicBasePrice")) {
+            int basePrice = nbt.getInt("RelicBasePrice");
+            float mult = (float) Rarity.values()[rarity].getMultiplier();
+            return (int) (basePrice * mult * 3);
         }
-        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) {
-            return level * 10 + rarity * 50;
-        }
+
+        if (stack.getItem().isEdible()) return level * 30 + rarity * 300;
+        if (stack.getItem() instanceof com.example.examplemod.item.RpgPotionItem) return level * 10 + rarity * 50;
 
         if (stack.getItem() == ModItems.SMALL_MAGIC_CRYSTAL.get()) return (level * 4 + rarity * 20);
         if (stack.getItem() == ModItems.MEDIUM_MAGIC_CRYSTAL.get()) return (level * 10 + rarity * 60);
         if (stack.getItem() == ModItems.LARGE_MAGIC_CRYSTAL.get()) return (level * 20 + rarity * 150);
 
-        float matMult = getMaterialMultiplier(stack.getItem());
-        int basePrice = level * 15 + rarity * 150;
-        return (int) (basePrice * matMult);
+        float matMult = getMaterialMultiplier(stack);
+
+        if (stack.getItem() instanceof com.example.examplemod.item.StaffItem) {
+            int energy = nbt.contains("StaffEnergy") ? nbt.getInt("StaffEnergy") : 500;
+            int base = (level * level * 33 / 7) + rarity * 150;
+            float basePrice = base * matMult;
+            float energyBonus = (energy / 1000.0f) * 15000f;
+            return (int) (basePrice + energyBonus);
+        }
+
+        int base = (level * level * 33 / 7) + rarity * 150;
+        return (int) (base * matMult);
     }
 
-    public static float getMaterialMultiplier(Item item) {
-        if (item == Items.WOODEN_SWORD || item == Items.LEATHER_HELMET
-                || item == Items.LEATHER_CHESTPLATE || item == Items.LEATHER_LEGGINGS
-                || item == Items.LEATHER_BOOTS) return 1.0f;
-        if (item == Items.STONE_SWORD) return 1.5f;
-        if (item == Items.IRON_SWORD || item == Items.IRON_HELMET
-                || item == Items.IRON_CHESTPLATE || item == Items.IRON_LEGGINGS
-                || item == Items.IRON_BOOTS) return 2.5f;
-        if (item == Items.GOLDEN_SWORD || item == Items.GOLDEN_HELMET
-                || item == Items.GOLDEN_CHESTPLATE || item == Items.GOLDEN_LEGGINGS
-                || item == Items.GOLDEN_BOOTS) return 3.5f;
-        if (item == Items.DIAMOND_SWORD || item == Items.DIAMOND_HELMET
-                || item == Items.DIAMOND_CHESTPLATE || item == Items.DIAMOND_LEGGINGS
-                || item == Items.DIAMOND_BOOTS) return 5.0f;
+    public static float getMaterialMultiplier(ItemStack stack) {
+        Item item = stack.getItem();
 
-        if (item == ModItems.SILVER_SWORD.get() || item == ModItems.SILVER_HELMET.get()
-                || item == ModItems.SILVER_CHESTPLATE.get() || item == ModItems.SILVER_LEGGINGS.get()
-                || item == ModItems.SILVER_BOOTS.get()) return 2.0f;
-        if (item == ModItems.COBALT_SWORD.get() || item == ModItems.COBALT_HELMET.get()
-                || item == ModItems.COBALT_CHESTPLATE.get() || item == ModItems.COBALT_LEGGINGS.get()
-                || item == ModItems.COBALT_BOOTS.get()) return 3.0f;
-        if (item == ModItems.MITHRIL_SWORD.get() || item == ModItems.MITHRIL_HELMET.get()
-                || item == ModItems.MITHRIL_CHESTPLATE.get() || item == ModItems.MITHRIL_LEGGINGS.get()
-                || item == ModItems.MITHRIL_BOOTS.get()) return 4.0f;
-        if (item == ModItems.ADAMANTIUM_SWORD.get() || item == ModItems.ADAMANTIUM_HELMET.get()
-                || item == ModItems.ADAMANTIUM_CHESTPLATE.get() || item == ModItems.ADAMANTIUM_LEGGINGS.get()
-                || item == ModItems.ADAMANTIUM_BOOTS.get()) return 6.0f;
-        if (item == ModItems.ORICHALCUM_SWORD.get() || item == ModItems.ORICHALCUM_HELMET.get()
-                || item == ModItems.ORICHALCUM_CHESTPLATE.get() || item == ModItems.ORICHALCUM_LEGGINGS.get()
-                || item == ModItems.ORICHALCUM_BOOTS.get()) return 8.0f;
+        if (ItemStatHelper.isArmor(stack)) {
+            ArmorItem armor = (ArmorItem) item;
+            EquipmentSlotType slot = armor.getSlot();
+            if (slot == EquipmentSlotType.MAINHAND || slot == EquipmentSlotType.OFFHAND) return 1.0f;
+            double power = getArmorPower(stack, slot);
+            double diamondPower = getDiamondArmorPower(slot);
+            if (diamondPower <= 0) return 1.0f;
+            return (float) (power / diamondPower);
+        }
+
+        if (ItemStatHelper.isWeapon(stack)) {
+            double power = getWeaponPower(stack);
+            if (power <= 0) return 1.0f;
+            return (float) (power / 6.0);
+        }
+
+        if (item == ModItems.SMALL_STAFF.get()) return 2.0f;
+        if (item == ModItems.MEDIUM_STAFF.get()) return 4.0f;
+        if (item == ModItems.LARGE_STAFF.get()) return 8.0f;
 
         return 1.0f;
+    }
+
+    private static double getWeaponPower(ItemStack stack) {
+        Multimap<Attribute, AttributeModifier> mods = stack.getAttributeModifiers(EquipmentSlotType.MAINHAND);
+        double base = 0, mult = 1;
+        for (AttributeModifier mod : mods.get(Attributes.ATTACK_DAMAGE)) {
+            if (mod.getOperation() == AttributeModifier.Operation.ADDITION) base += mod.getAmount();
+            else if (mod.getOperation() == AttributeModifier.Operation.MULTIPLY_BASE) mult *= (1 + mod.getAmount());
+            else if (mod.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL) mult *= (1 + mod.getAmount());
+        }
+        return base * mult;
+    }
+
+    private static double getArmorPower(ItemStack stack, EquipmentSlotType slot) {
+        Multimap<Attribute, AttributeModifier> mods = stack.getAttributeModifiers(slot);
+        double armor = 0, tough = 0;
+        for (AttributeModifier mod : mods.get(Attributes.ARMOR)) {
+            if (mod.getOperation() == AttributeModifier.Operation.ADDITION) armor += mod.getAmount();
+        }
+        for (AttributeModifier mod : mods.get(Attributes.ARMOR_TOUGHNESS)) {
+            if (mod.getOperation() == AttributeModifier.Operation.ADDITION) tough += mod.getAmount();
+        }
+        return armor + tough * 2;
+    }
+
+    private static double getDiamondArmorPower(EquipmentSlotType slot) {
+        switch (slot) {
+            case HEAD:  return 7.0;
+            case CHEST: return 12.0;
+            case LEGS:  return 10.0;
+            case FEET:  return 7.0;
+            default:    return 12.0;
+        }
     }
 
     private static Item pickFrom(Random rand, Item... items) {
@@ -137,34 +189,15 @@ public class ShopUtils {
     }
 
     private static Item pickItemForMerchant(Random rand, int merchantType) {
-        if (merchantType == 0) {
-            return pickFrom(rand,
-                    Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD,
-                    Items.GOLDEN_SWORD, Items.DIAMOND_SWORD,
-                    ModItems.SILVER_SWORD.get(), ModItems.COBALT_SWORD.get(),
-                    ModItems.MITHRIL_SWORD.get(), ModItems.ADAMANTIUM_SWORD.get(),
-                    ModItems.ORICHALCUM_SWORD.get());
-        } else if (merchantType == 1) {
-            return pickFrom(rand,
-                    Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS,
-                    Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
-                    Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS,
-                    Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS,
-                    ModItems.SILVER_HELMET.get(), ModItems.COBALT_HELMET.get(), ModItems.MITHRIL_HELMET.get(),
-                    ModItems.ADAMANTIUM_HELMET.get(), ModItems.ORICHALCUM_HELMET.get(),
-                    ModItems.SILVER_CHESTPLATE.get(), ModItems.COBALT_CHESTPLATE.get(), ModItems.MITHRIL_CHESTPLATE.get(),
-                    ModItems.ADAMANTIUM_CHESTPLATE.get(), ModItems.ORICHALCUM_CHESTPLATE.get(),
-                    ModItems.SILVER_LEGGINGS.get(), ModItems.COBALT_LEGGINGS.get(), ModItems.MITHRIL_LEGGINGS.get(),
-                    ModItems.ADAMANTIUM_LEGGINGS.get(), ModItems.ORICHALCUM_LEGGINGS.get(),
-                    ModItems.SILVER_BOOTS.get(), ModItems.COBALT_BOOTS.get(), ModItems.MITHRIL_BOOTS.get(),
-                    ModItems.ADAMANTIUM_BOOTS.get(), ModItems.ORICHALCUM_BOOTS.get());
-        } else if (merchantType == 2) {
-            // Маг продает зелья, кристаллы и Томы. ДОБАВИЛИ ЗЕЛЬЕ УДАЧИ
+        if (merchantType == 2) {
             return pickFrom(rand, ModItems.MANA_POTION.get(), ModItems.HEALTH_POTION.get(),
-                    ModItems.LUCK_POTION.get(), // <--- НОВОЕ ЗЕЛЬЕ
+                    ModItems.LUCK_POTION.get(),
                     ModItems.SMALL_MAGIC_CRYSTAL.get(), ModItems.MEDIUM_MAGIC_CRYSTAL.get(), ModItems.LARGE_MAGIC_CRYSTAL.get(),
-                    ModItems.SPELL_TOME.get());
-        } else {
+                    ModItems.SPELL_TOME.get(),
+                    ModItems.SMALL_STAFF.get(), ModItems.MEDIUM_STAFF.get(), ModItems.LARGE_STAFF.get());
+        }
+
+        if (merchantType == 3) {
             return pickFrom(rand,
                     Items.BREAD, Items.COOKIE, Items.BAKED_POTATO, Items.PUMPKIN_PIE,
                     Items.MUSHROOM_STEW, Items.BEETROOT_SOUP, Items.RABBIT_STEW, Items.SUSPICIOUS_STEW,
@@ -172,6 +205,36 @@ public class ShopUtils {
                     Items.COOKED_RABBIT, Items.COOKED_COD, Items.COOKED_SALMON, Items.DRIED_KELP,
                     Items.GOLDEN_CARROT, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE, Items.HONEY_BOTTLE);
         }
+
+        List<Item> pool = new ArrayList<>();
+
+        if (merchantType == 0) {
+            for (Item item : ForgeRegistries.ITEMS) {
+                if (item instanceof HorseArmorItem || item instanceof ElytraItem) continue;
+                if (!(item instanceof SwordItem || item instanceof AxeItem || item instanceof TridentItem)) continue;
+                ItemStack testStack = new ItemStack(item);
+                if (testStack.getMaxDamage() <= 0) continue;
+                if (getWeaponPower(testStack) <= 0) continue;
+                pool.add(item);
+            }
+        } else {
+            for (Item item : ForgeRegistries.ITEMS) {
+                if (item instanceof HorseArmorItem || item instanceof ElytraItem) continue;
+                if (!(item instanceof ArmorItem)) continue;
+                ArmorItem armor = (ArmorItem) item;
+                EquipmentSlotType slot = armor.getSlot();
+                if (slot == EquipmentSlotType.MAINHAND || slot == EquipmentSlotType.OFFHAND) continue;
+                ItemStack testStack = new ItemStack(item);
+                if (testStack.getMaxDamage() <= 0) continue;
+                if (getArmorPower(testStack, slot) <= 0) continue;
+                pool.add(item);
+            }
+        }
+
+        if (pool.isEmpty()) {
+            return merchantType == 0 ? Items.DIAMOND_SWORD : Items.DIAMOND_CHESTPLATE;
+        }
+        return pool.get(rand.nextInt(pool.size()));
     }
 
     public static ItemStack generateItemForMerchant(Random rand, int merchantType, int level, int rarity) {
@@ -187,11 +250,31 @@ public class ShopUtils {
             Spell spell = spells[rand.nextInt(spells.length)];
             nbt.putString("SpellId", spell.getId());
             nbt.putInt("SpellLevel", spell.getDefaultLevel());
+        } else if (item instanceof com.example.examplemod.item.StaffItem) {
+            int randomEnergy = 126 + rand.nextInt(21641 - 126 + 1);
+            nbt.putInt("StaffEnergy", randomEnergy);
+            stack.setDamageValue(0);
+
+            int totalStats = Math.max(1, (int) (((level / 10.0) + 1) * Rarity.values()[r].getMultiplier()));
+            int intel = 0, luck = 0;
+            for (int i = 0; i < totalStats; i++) {
+                if (rand.nextBoolean()) intel++;
+                else luck++;
+            }
+            if (intel == 0 && totalStats > 0) intel = 1;
+            if (luck == 0 && totalStats > 0) luck = 1;
+
+            nbt.putInt("StatStrength", 0);
+            nbt.putInt("StatDexterity", 0);
+            nbt.putInt("StatIntelligence", intel);
+            nbt.putInt("StatLuck", luck);
+            nbt.putInt("StatVitality", 0);
         } else if (!item.isEdible() && item != ModItems.SMALL_MAGIC_CRYSTAL.get()
                 && item != ModItems.MEDIUM_MAGIC_CRYSTAL.get() && item != ModItems.LARGE_MAGIC_CRYSTAL.get()
-                && item != ModItems.LUCK_POTION.get()) { // Не даем зелью удачи случайные статы
-            int totalStats = Math.max(1, (int) (level * Rarity.values()[r].getMultiplier()));
+                && item != ModItems.LUCK_POTION.get()) {
+            int totalStats = Math.max(1, (int) (((level / 10.0) + 1) * Rarity.values()[r].getMultiplier()));
             int str = 0, dex = 0, intel = 0, luck = 0, vit = 0;
+
             for (int i = 0; i < totalStats; i++) {
                 switch (rand.nextInt(5)) {
                     case 0: str++; break;

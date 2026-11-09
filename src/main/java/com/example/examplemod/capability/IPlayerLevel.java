@@ -1,7 +1,10 @@
 package com.example.examplemod.capability;
 
 import com.example.examplemod.profession.Profession;
+import com.example.examplemod.quest.Quest;
 import net.minecraft.nbt.CompoundNBT;
+
+import java.util.List;
 import java.util.Map;
 
 public interface IPlayerLevel {
@@ -19,15 +22,14 @@ public interface IPlayerLevel {
     void setBuff(int buffId, long endTime, float power); long getBuffEnd(int buffId); float getBuffPower(int buffId); boolean hasBuff(int buffId); void clearBuff(int buffId); CompoundNBT getAllBuffs();
     int getProfessionLevel(Profession p); int getProfessionXp(Profession p); void setProfessionLevel(Profession p, int level); void setProfessionXp(Profession p, int xp); boolean addProfessionXp(Profession p, int amount);
 
-    // === НОВОЕ: МАГИЯ ===
-    int getMageRank();
-    void setMageRank(int rank);
-    int getMageXp();
-    void setMageXp(int xp);
-    void addMageXp(int amount); // Качает ранг мага 0-5
-    Map<String, Integer> getKnownSpells(); // Список: ID заклинания -> Уровень заклинания
-    void learnSpell(String spellId, int level);
-    int getSpellLevel(String spellId);
+    // МАГИЯ
+    int getMageRank(); void setMageRank(int rank); int getMageXp(); void setMageXp(int xp); void addMageXp(int amount);
+    Map<String, Integer> getKnownSpells(); void learnSpell(String spellId, int level); int getSpellLevel(String spellId);
+
+    // НОВОЕ: КВЕСТЫ
+    List<Quest> getActiveQuests();
+    void addQuest(Quest quest);
+    void removeQuest(Quest quest);
 
     CompoundNBT serializeNBT();
     void deserializeNBT(CompoundNBT nbt);

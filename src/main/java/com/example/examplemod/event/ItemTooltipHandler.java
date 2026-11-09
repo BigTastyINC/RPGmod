@@ -5,6 +5,7 @@ import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
 import com.example.examplemod.item.RpgPotionItem;
+import com.example.examplemod.item.StaffItem;
 import com.example.examplemod.shop.ShopUtils;
 import com.example.examplemod.spells.Spell;
 import net.minecraft.entity.player.PlayerEntity;
@@ -18,7 +19,6 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = "examplemod")
 public class ItemTooltipHandler {
 
-    // Красивый формат с нулями (0з 0с 80м)
     private static String formatFullPrice(int copper) {
         int g = copper / 10000;
         int s = (copper % 10000) / 100;
@@ -26,18 +26,12 @@ public class ItemTooltipHandler {
         return g + "з " + s + "с " + m + "м";
     }
 
-    // Хелпер для вывода цены
     private static void addPriceTooltip(ItemTooltipEvent event, ItemStack stack) {
         int unitPrice = ShopUtils.calcSellPrice(stack);
         int totalPrice = unitPrice * stack.getCount();
-
         event.getToolTip().add(new StringTextComponent("§8--------------------"));
-
-        // ИЗМЕНЕНО: Убрали "продажи"
         event.getToolTip().add(new StringTextComponent("§6Цена предмета: §e" + formatFullPrice(unitPrice)));
-
         if (stack.getCount() > 1) {
-            // ИЗМЕНЕНО: Убрали "продажи"
             event.getToolTip().add(new StringTextComponent("§6Цена стака: §e" + formatFullPrice(totalPrice)));
         }
     }
@@ -46,9 +40,41 @@ public class ItemTooltipHandler {
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
         CompoundNBT nbt = stack.getTag();
-
         PlayerEntity player = event.getPlayer();
         if (player == null) return;
+
+        final int[] mageRank = {0};
+        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> mageRank[0] = data.getMageRank());
+
+        // === СВИТОК ЗАКЛИНАНИЯ ===
+        if (stack.getItem() == ModItems.SPELL_SCROLL.get()) {
+            if (nbt != null && nbt.contains("SpellId")) {
+                Spell spell = Spell.byId(nbt.getString("SpellId"));
+                int lvl = nbt.getInt("SpellLevel");
+
+                int rarityIndex = Math.min(4, nbt.getInt("RarityLevel"));
+                Rarity rarity = Rarity.values()[rarityIndex];
+
+                float finalDamage = spell.getDamage(lvl, rarityIndex);
+                int manaCost = spell.getManaCost(mageRank[0]);
+
+                event.getToolTip().add(new StringTextComponent(rarity.getColor() + "[ " + rarity.getName() + " ] Свиток"));
+                event.getToolTip().add(new StringTextComponent("§8--------------------"));
+                event.getToolTip().add(new StringTextComponent("§bЗаклинание: §f" + spell.getName()));
+                event.getToolTip().add(new StringTextComponent("§7Уровень заклинания: " + lvl));
+                event.getToolTip().add(new StringTextComponent("§7" + spell.getDescription()));
+                event.getToolTip().add(new StringTextComponent(""));
+                event.getToolTip().add(new StringTextComponent("§9Мана: " + manaCost));
+
+                // Урон показываем только если он больше нуля
+                if (finalDamage > 0) {
+                    event.getToolTip().add(new StringTextComponent("§cУрон: " + (int)finalDamage));
+                }
+
+                addPriceTooltip(event, stack);
+            }
+            return;
+        }
 
         // === ЗЕЛЬЕ УДАЧИ ===
         if (stack.getItem() == ModItems.LUCK_POTION.get()) {
@@ -69,18 +95,20 @@ public class ItemTooltipHandler {
                 Spell spell = Spell.byId(spellId);
                 int spellLevel = spell.getDefaultLevel();
 
-                final int[] mageRank = {0};
-                player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> mageRank[0] = data.getMageRank());
+                int rarityIndex = Math.min(4, mageRank[0]);
+                Rarity rarity = Rarity.values()[rarityIndex];
 
-                Rarity rarity = Rarity.values()[Math.min(4, mageRank[0])];
-
-                int finalDamage = (int) ((spell.getBaseDamage() + (spellLevel * 5)) * rarity.getMultiplier());
-                int finalMana = (int) (spell.getBaseManaCost() * (1.0 - (spellLevel * 0.05)));
+                float finalDamage = spell.getDamage(spellLevel, rarityIndex);
+                int finalMana = spell.getManaCost(mageRank[0]);
 
                 event.getToolTip().add(new StringTextComponent(rarity.getColor() + spell.getName() + " [" + rarity.getName() + "]"));
                 event.getToolTip().add(new StringTextComponent("§7Уровень заклинания: " + spellLevel));
                 event.getToolTip().add(new StringTextComponent("§8--------------------"));
-                event.getToolTip().add(new StringTextComponent("§cУрон: " + finalDamage));
+
+                if (finalDamage > 0) {
+                    event.getToolTip().add(new StringTextComponent("§cУрон: " + (int)finalDamage));
+                }
+
                 event.getToolTip().add(new StringTextComponent("§9Мана: " + finalMana));
                 event.getToolTip().add(new StringTextComponent("§7" + spell.getDescription()));
 
@@ -88,9 +116,78 @@ public class ItemTooltipHandler {
                     event.getToolTip().add(new StringTextComponent(""));
                     event.getToolTip().add(new StringTextComponent("§4⚠ Требуется Ранг Мага: " + spellLevel));
                 }
-
                 addPriceTooltip(event, stack);
             }
+            return;
+        }
+
+        // === ПОСОХИ ===
+        if (stack.getItem() instanceof StaffItem) {
+            StaffItem staff = (StaffItem) stack.getItem();
+            int level = nbt.getInt("ItemLevel");
+            int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
+            Rarity rarity = Rarity.values()[rIndex];
+
+            event.getToolTip().add(new StringTextComponent(rarity.getColor() + "[" + rarity.getName() + "] Уровень: " + level));
+            event.getToolTip().add(new StringTextComponent("§8--------------------"));
+            event.getToolTip().add(new StringTextComponent("§6Множитель урона: §e" + staff.getDamageMultiplier() + "x"));
+
+            String selected = nbt.getString("SelectedSpell");
+            if (!selected.isEmpty()) {
+                Spell s = Spell.byId(selected);
+                int manaCost = s.getManaCost(mageRank[0]);
+                event.getToolTip().add(new StringTextComponent("§bЗаклинание: §f" + s.getName() + " §7(-" + manaCost + " маны)"));
+            } else {
+                event.getToolTip().add(new StringTextComponent("§7ЛКМ — выбрать заклинание"));
+            }
+
+            int maxEnergy = staff.getMaxDamage(stack);
+            int currentEnergy = maxEnergy - stack.getDamageValue();
+            event.getToolTip().add(new StringTextComponent("§dМагическая энергия: §e" + currentEnergy + " §7/ §e" + maxEnergy));
+
+            if (nbt.getInt("StatIntelligence") > 0) event.getToolTip().add(new StringTextComponent("§d+" + nbt.getInt("StatIntelligence") + " Интеллект"));
+            if (nbt.getInt("StatLuck") > 0) event.getToolTip().add(new StringTextComponent("§e+" + nbt.getInt("StatLuck") + " Удача"));
+
+            addPriceTooltip(event, stack);
+            return;
+        }
+
+        // === РЕЛИКВИИ ===
+        if (nbt.contains("RelicBasePrice")) {
+            int rarityIndex = Math.min(4, nbt.getInt("RarityLevel"));
+            Rarity rarity = Rarity.values()[rarityIndex];
+            event.getToolTip().add(new StringTextComponent(rarity.getColor() + "[" + rarity.getName() + "] Реликвия"));
+            event.getToolTip().add(new StringTextComponent("§8--------------------"));
+            event.getToolTip().add(new StringTextComponent("§6Уникальный предмет!"));
+            addPriceTooltip(event, stack);
+            return;
+        }
+
+        // === МАГИЧЕСКАЯ ЕДА (ТОЛЬКО ГОТОВАЯ!) ===
+        if (FoodBuffHandler.isPreparedFood(stack.getItem()) && nbt.contains("RarityLevel")) {
+            int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
+            Rarity rarity = Rarity.values()[rIndex];
+            int buffId = RpgBuffs.getBuffForFood(stack.getItem());
+
+            float power = RpgBuffs.BASE_POWER[buffId] * RpgBuffs.RARITY_MULTIPLIER[rIndex];
+            String desc = RpgBuffs.DESCRIPTIONS[buffId];
+
+            if (desc.contains("%")) {
+                int percent = (int) Math.round(power * 100);
+                desc = desc.replace("%", "" + percent);
+            } else if (desc.contains("HP") || desc.contains("мана")) {
+                desc = desc.replace("X", String.format("%.1f", power));
+            }
+
+            int itemLevel = nbt.contains("ItemLevel") ? nbt.getInt("ItemLevel") : 1;
+            int bonusMinutes = itemLevel / 40;
+            int totalMinutes = RpgBuffs.DURATION_MINUTES[rIndex] + bonusMinutes;
+
+            event.getToolTip().add(new StringTextComponent(""));
+            event.getToolTip().add(new StringTextComponent(rarity.getColor() + "[" + rarity.getName() + "]"));
+            event.getToolTip().add(new StringTextComponent("§b" + RpgBuffs.NAMES[buffId] + " §7— " + desc));
+            event.getToolTip().add(new StringTextComponent("§7Длительность: " + totalMinutes + " мин"));
+            addPriceTooltip(event, stack);
             return;
         }
 
@@ -115,41 +212,13 @@ public class ItemTooltipHandler {
                 int energy = (int) (level * 10 * rarity.getMultiplier());
                 event.getToolTip().add(new StringTextComponent("§dМагическая энергия: " + energy));
             }
-            else {
+            else if (!stack.getItem().isEdible()) {
                 if (nbt.getInt("StatStrength") > 0) event.getToolTip().add(new StringTextComponent("§c+" + nbt.getInt("StatStrength") + " Сила"));
                 if (nbt.getInt("StatDexterity") > 0) event.getToolTip().add(new StringTextComponent("§b+" + nbt.getInt("StatDexterity") + " Ловкость"));
                 if (nbt.getInt("StatIntelligence") > 0) event.getToolTip().add(new StringTextComponent("§d+" + nbt.getInt("StatIntelligence") + " Интеллект"));
                 if (nbt.getInt("StatLuck") > 0) event.getToolTip().add(new StringTextComponent("§e+" + nbt.getInt("StatLuck") + " Удача"));
                 if (nbt.getInt("StatVitality") > 0) event.getToolTip().add(new StringTextComponent("§4+" + nbt.getInt("StatVitality") + " Жизнь"));
             }
-
-            addPriceTooltip(event, stack);
-        }
-        // === МАГИЧЕСКАЯ ЕДА ===
-        else if (nbt.contains("RarityLevel")) {
-            int rIndex = Math.min(4, nbt.getInt("RarityLevel"));
-            Rarity rarity = Rarity.values()[rIndex];
-            int buffId = RpgBuffs.getBuffForFood(stack.getItem());
-
-            float power = RpgBuffs.BASE_POWER[buffId] * RpgBuffs.RARITY_MULTIPLIER[rIndex];
-            String desc = RpgBuffs.DESCRIPTIONS[buffId];
-
-            if (desc.contains("%")) {
-                int percent = (int) Math.round(power * 100);
-                desc = desc.replace("%", "" + percent);
-            } else if (desc.contains("HP") || desc.contains("мана")) {
-                desc = desc.replace("X", String.format("%.1f", power));
-            }
-
-            int itemLevel = nbt.contains("ItemLevel") ? nbt.getInt("ItemLevel") : 1;
-            int bonusMinutes = itemLevel / 40;
-            int totalMinutes = RpgBuffs.DURATION_MINUTES[rIndex] + bonusMinutes;
-
-            event.getToolTip().add(new StringTextComponent(""));
-            event.getToolTip().add(new StringTextComponent(rarity.getColor() + "[" + rarity.getName() + "]"));
-            event.getToolTip().add(new StringTextComponent("§b" + RpgBuffs.NAMES[buffId] + " §7— " + desc));
-            event.getToolTip().add(new StringTextComponent("§7Длительность: " + totalMinutes + " мин"));
-
             addPriceTooltip(event, stack);
         }
     }

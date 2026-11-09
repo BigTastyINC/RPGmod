@@ -2,9 +2,12 @@ package com.example.examplemod.capability;
 
 import com.example.examplemod.profession.Profession;
 import com.example.examplemod.profession.ProfessionData;
+import com.example.examplemod.quest.Quest;
 import net.minecraft.nbt.CompoundNBT;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 public class PlayerLevel implements IPlayerLevel {
@@ -16,16 +19,16 @@ public class PlayerLevel implements IPlayerLevel {
 
     private int mageRank = 0, mageXp = 0;
     private final Map<String, Integer> knownSpells = new java.util.HashMap<>();
+    private final List<Quest> activeQuests = new ArrayList<>();
 
     private final Map<Profession, ProfessionData> professions = new EnumMap<>(Profession.class);
 
     public PlayerLevel() {
-        for (Profession p : Profession.values()) {
-            professions.put(p, new ProfessionData(p.getXpMultiplier(), p.getMaxLevel()));
-        }
+        for (Profession p : Profession.values()) professions.put(p, new ProfessionData(p.getXpMultiplier(), p.getMaxLevel()));
     }
 
-    @Override public int getLevel() { return level; } @Override public void setLevel(int level) { this.level = level; }
+    // ... (все существующие геттеры и сеттеры без изменений)
+    @Override public int getLevel() { return level; } @Override public void setLevel(int level) { this.level = Math.max(1, level); }
     @Override public int getXp() { return xp; } @Override public void setXp(int xp) { this.xp = xp; }
     @Override public int getStatPoints() { return statPoints; } @Override public void setStatPoints(int points) { this.statPoints = points; } @Override public void addStatPoints(int points) { this.statPoints += points; }
     @Override public int getStrength() { return strength; } @Override public void setStrength(int value) { this.strength = value; }
@@ -57,25 +60,25 @@ public class PlayerLevel implements IPlayerLevel {
     @Override public boolean hasBuff(int buffId) { return buffs.contains("b" + buffId); }
     @Override public void clearBuff(int buffId) { buffs.remove("b" + buffId); }
     @Override public CompoundNBT getAllBuffs() { return buffs; }
-
-    @Override public int getMageRank() { return mageRank; }
-    @Override public void setMageRank(int rank) { this.mageRank = Math.max(0, Math.min(5, rank)); }
-    @Override public int getMageXp() { return mageXp; }
-    @Override public void setMageXp(int xp) { this.mageXp = xp; }
+    @Override public int getMageRank() { return mageRank; } @Override public void setMageRank(int rank) { this.mageRank = Math.max(0, Math.min(5, rank)); }
+    @Override public int getMageXp() { return mageXp; } @Override public void setMageXp(int xp) { this.mageXp = xp; }
     @Override public void addMageXp(int amount) {
         if (mageRank >= 5) return;
         this.mageXp += amount;
         int xpNeeded = 500 * (int)Math.pow(2, mageRank);
         while (mageRank < 5 && this.mageXp >= xpNeeded) {
-            this.mageXp -= xpNeeded;
-            this.mageRank++;
-            xpNeeded = 500 * (int)Math.pow(2, mageRank);
+            this.mageXp -= xpNeeded; this.mageRank++; xpNeeded = 500 * (int)Math.pow(2, mageRank);
         }
         if (mageRank >= 5) this.mageXp = 0;
     }
     @Override public Map<String, Integer> getKnownSpells() { return knownSpells; }
     @Override public void learnSpell(String spellId, int level) { knownSpells.put(spellId, level); }
     @Override public int getSpellLevel(String spellId) { return knownSpells.getOrDefault(spellId, -1); }
+
+    // НОВОЕ: КВЕСТЫ
+    @Override public List<Quest> getActiveQuests() { return activeQuests; }
+    @Override public void addQuest(Quest quest) { activeQuests.add(quest); }
+    @Override public void removeQuest(Quest quest) { activeQuests.remove(quest); }
 
     @Override
     public CompoundNBT serializeNBT() {
@@ -97,17 +100,36 @@ public class PlayerLevel implements IPlayerLevel {
             CompoundNBT d = new CompoundNBT(); e.getValue().writeToNBT(d); profNbt.put(e.getKey().getId(), d);
         }
         nbt.put("professions", profNbt);
+
+        // НОВОЕ: Сериализация квестов
+        CompoundNBT questsNbt = new CompoundNBT();
+        int i = 0;
+        for (Quest q : activeQuests) {
+            questsNbt.put("q" + i, q.serializeNBT());
+            i++;
+        }
+        nbt.put("activeQuests", questsNbt);
+
         return nbt;
     }
 
     @Override
     public void deserializeNBT(CompoundNBT nbt) {
-        this.level = nbt.getInt("level"); this.xp = nbt.getInt("xp"); this.statPoints = nbt.getInt("statPoints");
-        this.mana = nbt.contains("mana") ? nbt.getInt("mana") : getMaxMana(); this.strength = nbt.getInt("strength");
-        this.dexterity = nbt.getInt("dexterity"); this.intelligence = nbt.getInt("intelligence"); this.luck = nbt.getInt("luck");
-        this.vitality = nbt.getInt("vitality"); this.healthRegen = nbt.getInt("healthRegen"); this.manaRegen = nbt.getInt("manaRegen");
-        this.stamina = nbt.contains("stamina") ? nbt.getInt("stamina") : 100; this.staminaRegen = nbt.getInt("staminaRegen");
-        this.staminaRegenDelay = nbt.getInt("staminaRegenDelay"); this.copper = nbt.getInt("copper"); this.silver = nbt.getInt("silver"); this.gold = nbt.getInt("gold");
+        this.level = nbt.contains("level") ? Math.max(1, nbt.getInt("level")) : 1;
+        this.xp = nbt.getInt("xp");
+        this.statPoints = nbt.getInt("statPoints");
+        this.mana = nbt.contains("mana") ? nbt.getInt("mana") : getMaxMana();
+        this.strength = nbt.contains("strength") ? Math.max(1, nbt.getInt("strength")) : 1;
+        this.dexterity = nbt.contains("dexterity") ? Math.max(1, nbt.getInt("dexterity")) : 1;
+        this.intelligence = nbt.contains("intelligence") ? Math.max(1, nbt.getInt("intelligence")) : 1;
+        this.luck = nbt.contains("luck") ? Math.max(1, nbt.getInt("luck")) : 1;
+        this.vitality = nbt.contains("vitality") ? Math.max(1, nbt.getInt("vitality")) : 1;
+        this.healthRegen = nbt.getInt("healthRegen");
+        this.manaRegen = nbt.getInt("manaRegen");
+        this.stamina = nbt.contains("stamina") ? nbt.getInt("stamina") : 100;
+        this.staminaRegen = nbt.getInt("staminaRegen");
+        this.staminaRegenDelay = nbt.getInt("staminaRegenDelay");
+        this.copper = nbt.getInt("copper"); this.silver = nbt.getInt("silver"); this.gold = nbt.getInt("gold");
         if (nbt.contains("buffs")) this.buffs = nbt.getCompound("buffs");
 
         this.mageRank = nbt.getInt("mageRank"); this.mageXp = nbt.getInt("mageXp");
@@ -120,6 +142,15 @@ public class PlayerLevel implements IPlayerLevel {
         if (nbt.contains("professions")) {
             CompoundNBT profNbt = nbt.getCompound("professions");
             for (Profession p : Profession.values()) if (profNbt.contains(p.getId())) profData(p).readFromNBT(profNbt.getCompound(p.getId()));
+        }
+
+        // НОВОЕ: Десериализация квестов
+        this.activeQuests.clear();
+        if (nbt.contains("activeQuests")) {
+            CompoundNBT questsNbt = nbt.getCompound("activeQuests");
+            for (String key : questsNbt.getAllKeys()) {
+                activeQuests.add(Quest.deserializeNBT(questsNbt.getCompound(key)));
+            }
         }
     }
 }

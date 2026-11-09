@@ -5,6 +5,7 @@ import com.example.examplemod.item.ModItems;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.material.Material;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraftforge.common.ToolType;
@@ -30,9 +31,12 @@ public class ModBlocks {
     public static final RegistryObject<Block> ORICHALCUM_ORE = registerBlock("orichalcum_ore",
             () -> new Block(AbstractBlock.Properties.copy(Blocks.ANCIENT_DEBRIS).harvestLevel(4).harvestTool(ToolType.PICKAXE).requiresCorrectToolForDrops()));
 
+    // НОВОЕ: Доска Квестов
+    public static final RegistryObject<Block> QUEST_BOARD = registerBlock("quest_board",
+            () -> new QuestBoardBlock(AbstractBlock.Properties.of(Material.WOOD).strength(2.0F).harvestTool(ToolType.AXE)));
+
     private static <T extends Block> RegistryObject<T> registerBlock(String name, java.util.function.Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);
-        // Используем нашу новую вкладку для блоков
         ModItems.ITEMS.register(name, () -> new BlockItem(toReturn.get(), new Item.Properties().tab(ModItemGroup.INSTANCE)));
         return toReturn;
     }
