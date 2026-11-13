@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "GCG",
+    " G "
+  ],
+  "key": {
+    "S": { "item": "minecraft:string" },
+    "G": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "examplemod:medium_magic_crystal" }
+  },
+  "result": { "item": "examplemod:amulet_of_protection" }
+}

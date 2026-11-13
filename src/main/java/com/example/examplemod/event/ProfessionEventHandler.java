@@ -24,7 +24,6 @@ public class ProfessionEventHandler {
 
     private static final Random RANDOM = new Random();
 
-    // === РЫБАК ===
     @SubscribeEvent
     public static void onItemFished(ItemFishedEvent event) {
         PlayerEntity player = event.getPlayer();
@@ -39,11 +38,10 @@ public class ProfessionEventHandler {
 
             int lvl = data.getProfessionLevel(Profession.FISHERMAN);
             int fishLevel = Math.max(1, lvl + RANDOM.nextInt(7) - 3);
-            Rarity rarity = RarityRoller.roll(lvl);
+            Rarity rarity = RarityRoller.roll(lvl, data.getLuck());
 
             boolean hasDoubleCatch = data.hasBuff(RpgBuffs.DOUBLE_CATCH) && player.level.getGameTime() < data.getBuffEnd(RpgBuffs.DOUBLE_CATCH);
 
-            // 1. Применяем NBT к оригинальным дропам
             for (ItemStack stack : drops) {
                 if (stack.getItem().isEdible()) {
                     CompoundNBT nbt = stack.getOrCreateTag();
@@ -52,7 +50,6 @@ public class ProfessionEventHandler {
                 }
             }
 
-            // 2. Двойной улов (выдаем копию вручную на игрока)
             if (hasDoubleCatch) {
                 for (ItemStack stack : drops) {
                     if (stack.getItem().isEdible()) {
@@ -63,8 +60,8 @@ public class ProfessionEventHandler {
                 }
             }
 
-            // 3. Шанс на x5 улов (выдаем 4 копии вручную)
-            float chance = lvl * 0.005f;
+            // НОВОЕ: Удача повышает шанс x5
+            float chance = (lvl * 0.005f) + (data.getLuck() * 0.001f);
             if (player.level.random.nextFloat() < chance) {
                 for (ItemStack stack : drops) {
                     if (stack.getItem().isEdible()) {
@@ -80,12 +77,10 @@ public class ProfessionEventHandler {
         });
     }
 
-    // Вспомогательный метод для выдачи предмета на игрока
     private static void spawnItem(PlayerEntity player, ItemStack stack) {
         player.level.addFreshEntity(new ItemEntity(player.level, player.getX(), player.getY() + 1, player.getZ(), stack));
     }
 
-    // === РУДОКОП ===
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         PlayerEntity player = event.getPlayer();
@@ -102,7 +97,9 @@ public class ProfessionEventHandler {
             data.addProfessionXp(Profession.MINER, xpGain);
 
             int lvl = data.getProfessionLevel(Profession.MINER);
-            float chance = lvl * 0.005f;
+
+            // НОВОЕ: Удача повышает шанс x4
+            float chance = (lvl * 0.005f) + (data.getLuck() * 0.001f);
             if (player.level.random.nextFloat() < chance) {
                 List<ItemStack> drops = Block.getDrops(event.getState(), (net.minecraft.world.server.ServerWorld) player.level, event.getPos(), null);
                 int extraCount = 0;

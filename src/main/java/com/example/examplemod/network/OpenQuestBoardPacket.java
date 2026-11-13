@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 
 public class OpenQuestBoardPacket {
     private final List<Quest> availableQuests;
-    private final List<Quest> activeQuests; // НОВОЕ
+    private final List<Quest> activeQuests;
 
     public OpenQuestBoardPacket() {
         this.availableQuests = new ArrayList<>();
@@ -31,16 +31,11 @@ public class OpenQuestBoardPacket {
     }
 
     public static void encode(OpenQuestBoardPacket msg, PacketBuffer buf) {
-        // Доступные
         buf.writeInt(msg.availableQuests.size());
-        for (Quest q : msg.availableQuests) {
-            buf.writeNbt(q.serializeNBT());
-        }
-        // Активные
+        for (Quest q : msg.availableQuests) buf.writeNbt(q.serializeNBT());
+
         buf.writeInt(msg.activeQuests.size());
-        for (Quest q : msg.activeQuests) {
-            buf.writeNbt(q.serializeNBT());
-        }
+        for (Quest q : msg.activeQuests) buf.writeNbt(q.serializeNBT());
     }
 
     public static OpenQuestBoardPacket decode(PacketBuffer buf) {
@@ -58,27 +53,27 @@ public class OpenQuestBoardPacket {
     public static void handle(OpenQuestBoardPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             if (ctx.get().getDirection().getReceptionSide().isClient()) {
-                // Клиент получает оба списка и открывает экран
                 DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                        Minecraft.getInstance().setScreen(new QuestScreen(msg.availableQuests, msg.activeQuests))
+                        Minecraft.getInstance().setScreen(new QuestScreen(msg.availableQuests, msg.activeQuests, 0))
                 );
             } else {
-                // Сервер получил запрос от клиента
                 ServerPlayerEntity player = ctx.get().getSender();
                 if (player != null) {
-                    final int[] playerLevel = {1};
-                    List<Quest> active = new ArrayList<>();
-
                     player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
-                        playerLevel[0] = data.getLevel();
-                        active.addAll(data.getActiveQuests()); // <-- Берем актуальные квесты с сервера
+                        long currentTime = player.level.getGameTime();
+                        long lastRefresh = data.getQuestBoardRefreshTime();
+
+                        // НОВОЕ: Если прошло 5 минут (6000 тиков) или список пуст — генерируем новые
+                        if (currentTime - lastRefresh >= 6000 || data.getAvailableQuests().isEmpty()) {
+                            List<Quest> newQuests = QuestGenerator.generateDailyQuests(data.getLevel());
+                            data.setAvailableQuests(newQuests);
+                            data.setQuestBoardRefreshTime(currentTime);
+                        }
+
+                        // Отправляем клиенту
+                        NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
+                                new OpenQuestBoardPacket(data.getAvailableQuests(), data.getActiveQuests()));
                     });
-
-                    List<Quest> generatedQuests = QuestGenerator.generateDailyQuests(playerLevel[0]);
-
-                    // Отправляем и сгенерированные, и активные квесты
-                    NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
-                            new OpenQuestBoardPacket(generatedQuests, active));
                 }
             }
         });

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GCG",
+    "L L"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "examplemod:medium_magic_crystal" },
+    "L": { "item": "minecraft:leather" }
+  },
+  "result": { "item": "examplemod:bracelet_of_swiftness" }
+}

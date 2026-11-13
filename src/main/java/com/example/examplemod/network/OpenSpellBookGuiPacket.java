@@ -20,12 +20,12 @@ public class OpenSpellBookGuiPacket {
     public static void handle(OpenSpellBookGuiPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             if (ctx.get().getDirection().getReceptionSide().isClient()) {
-                // Клиент получает команду открыть GUI
+                // КЛИЕНТ: открываем GUI
                 DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
                         Minecraft.getInstance().setScreen(new SpellBookScreen())
                 );
             } else {
-                // Сервер получает запрос от клиента и отправляет подтверждение обратно
+                // СЕРВЕР: отправляем пакет только отправителю
                 ServerPlayerEntity player = ctx.get().getSender();
                 if (player != null) {
                     NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new OpenSpellBookGuiPacket());

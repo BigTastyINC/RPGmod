@@ -2,6 +2,8 @@ package com.example.examplemod.event;
 
 import com.example.examplemod.buffs.RpgBuffs;
 import com.example.examplemod.capability.ModCapabilities;
+import com.example.examplemod.network.NetworkHandler;
+import com.example.examplemod.network.SyncLevelPacket;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -12,6 +14,7 @@ import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.network.PacketDistributor;
 
 import java.util.Random;
 
@@ -74,6 +77,26 @@ public class FoodBuffHandler {
         if (player.level.isClientSide) return;
 
         ItemStack stack = event.getItem();
+
+        // === Обычное яблоко — +5 HP и +5 маны ===
+        if (stack.getItem() == Items.APPLE) {
+            player.heal(5.0f);
+            player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                data.setMana(data.getMana() + 5);
+                NetworkHandler.INSTANCE.send(
+                        PacketDistributor.PLAYER.with(() -> player),
+                        new SyncLevelPacket(
+                                data.getLevel(), data.getXp(), data.getStatPoints(),
+                                data.getStrength(), data.getDexterity(), data.getIntelligence(), data.getLuck(), data.getVitality(),
+                                data.getMana(), data.getHealthRegen(), data.getManaRegen(),
+                                data.getStamina(), data.getStaminaRegen(),
+                                data.getCopper(), data.getSilver(), data.getGold())
+                );
+            });
+            player.sendMessage(new StringTextComponent("§a+5 HP, §b+5 маны"), player.getUUID());
+            return;
+        }
+
         if (!isPreparedFood(stack.getItem())) return;
 
         assignRarityIfFood(stack);
@@ -84,14 +107,12 @@ public class FoodBuffHandler {
 
         int buffId = RpgBuffs.getBuffForFood(stack.getItem());
 
-        // НОВОЕ: Вычисляем бонусные минуты от уровня предмета
         int itemLevel = stack.hasTag() && stack.getTag().contains("ItemLevel")
                 ? stack.getTag().getInt("ItemLevel")
                 : 1;
         int bonusMinutes = itemLevel / 40;
 
         final float basePower = RpgBuffs.BASE_POWER[buffId] * RpgBuffs.RARITY_MULTIPLIER[rarity];
-        // НОВОЕ: Добавляем бонусные минуты к базовой длительности
         final int totalMinutes = RpgBuffs.DURATION_MINUTES[rarity] + bonusMinutes;
         final int durationTicks = totalMinutes * 60 * 20;
         final long endTime = player.level.getGameTime() + durationTicks;

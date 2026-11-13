@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GCG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_nugget" },
+    "C": { "item": "examplemod:small_magic_crystal" }
+  },
+  "result": { "item": "examplemod:earring_of_dexterity" }
+}

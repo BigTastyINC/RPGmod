@@ -6,6 +6,7 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.screen.inventory.InventoryScreen;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldVertexBufferUploader;
@@ -40,7 +41,14 @@ public class RpgHud extends AbstractGui {
         if (event.getType() != RenderGameOverlayEvent.ElementType.TEXT) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen != null) return;
+
+        // НОВОЕ: Разрешаем рисовать HUD в инвентаре и в меню Curios
+        if (mc.screen != null) {
+            String screenName = mc.screen.getClass().getName().toLowerCase();
+            if (!(mc.screen instanceof InventoryScreen) && !screenName.contains("curios")) {
+                return;
+            }
+        }
 
         PlayerEntity player = mc.player;
         if (player == null) return;
@@ -84,7 +92,6 @@ public class RpgHud extends AbstractGui {
             int xpNeeded = currentLevel * 100;
 
             String xpText = "§aXP: " + currentXp + " / " + xpNeeded;
-            // ИЗМЕНЕНО: height - 32 (прямо над хотбаром)
             mc.font.drawShadow(ms, xpText, centerX - (mc.font.width(xpText) / 2f), height - 32, 0xFFFFFF);
 
             // ===== УРОВЕНЬ =====
@@ -97,7 +104,6 @@ public class RpgHud extends AbstractGui {
     }
 
     private static void drawCustomBar(MatrixStack ms, Minecraft mc, int x, int y, float scaleX, float scaleY, float progress, int colorTop, int colorBottom, String text) {
-        // 1. Текстура
         ms.pushPose();
         ms.translate(x, y, 0);
         ms.scale(scaleX, scaleY, 1.0f);
@@ -105,14 +111,12 @@ public class RpgHud extends AbstractGui {
         mc.getTextureManager().bind(HUD_TEXTURE);
         blit(ms, 0, 0, 0, 0, 158, 29, 256, 256);
 
-        // 2. Градиентная заливка
         progress = Math.max(0.0f, Math.min(1.0f, progress));
         int fillWidth = (int) ((158 - 10) * progress);
         drawGradientFill(ms, 5, 6, fillWidth, 19, colorTop, colorBottom);
 
         ms.popPose();
 
-        // 3. Текст
         ms.pushPose();
         float textScale = 0.6f;
         float centerX = x + (158 * scaleX) / 2f;

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " G ",
+    "GCG",
+    " G "
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "examplemod:small_magic_crystal" }
+  },
+  "result": { "item": "examplemod:ring_of_strength" }
+}

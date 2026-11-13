@@ -41,7 +41,11 @@ public class TradeContainer extends Container {
 
                     if (stack.hasTag()) {
                         CompoundNBT nbt = stack.getTag();
-                        return nbt.contains("ItemLevel") || nbt.contains("RarityLevel");
+                        // НОВОЕ: разрешаем тома, реликвии, а также обычные предметы с редкостью/уровнем
+                        return nbt.contains("ItemLevel")
+                                || nbt.contains("RarityLevel")
+                                || nbt.contains("SpellId")
+                                || nbt.contains("RelicBasePrice");
                     }
                     return false;
                 }
@@ -61,7 +65,6 @@ public class TradeContainer extends Container {
         }
     }
 
-    // НОВОЕ: Правильная логика шифт-клика (быстрого перемещения)
     @Override
     public ItemStack quickMoveStack(PlayerEntity playerIn, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
@@ -71,14 +74,11 @@ public class TradeContainer extends Container {
             ItemStack itemstack1 = slot.getItem();
             itemstack = itemstack1.copy();
 
-            // Если кликнули по слоту продажи (0-9) -> переносим в инвентарь игрока (10-45)
             if (index < 10) {
                 if (!this.moveItemStackTo(itemstack1, 10, 46, true)) {
                     return ItemStack.EMPTY;
                 }
-            }
-            // Если кликнули по инвентарю (10-45) -> пытаемся перенести в слоты продажи (0-9)
-            else {
+            } else {
                 if (!this.moveItemStackTo(itemstack1, 0, 10, false)) {
                     return ItemStack.EMPTY;
                 }

@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": { "model": "examplemod:block/quest_board" }
+    "facing=north": { "model": "examplemod:block/quest_board" },
+    "facing=south": { "model": "examplemod:block/quest_board" },
+    "facing=west":  { "model": "examplemod:block/quest_board" },
+    "facing=east":  { "model": "examplemod:block/quest_board" }
   }
 }

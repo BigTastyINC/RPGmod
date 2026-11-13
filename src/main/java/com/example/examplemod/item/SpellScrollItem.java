@@ -57,6 +57,12 @@ public class SpellScrollItem extends Item {
             playerIn.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
                 int manaCost = spell.getManaCost(data.getMageRank());
 
+                // MANA_SAVING работает, если в руке посох с этим аффиксом
+                ItemStack mainHand = playerIn.getMainHandItem();
+                if (ItemStatHelper.isStaff(mainHand) && ItemStatHelper.hasAffix(mainHand, ItemAffix.MANA_SAVING)) {
+                    manaCost = (int)(manaCost * 0.9f);
+                }
+
                 if (data.getMana() < manaCost) {
                     playerIn.displayClientMessage(new StringTextComponent("§cНедостаточно маны! Требуется: " + manaCost), true);
                     return;
@@ -134,9 +140,7 @@ public class SpellScrollItem extends Item {
                     return;
                 }
 
-                // Призыв нежити (свиток)
                 if (spellId.equals("summon_undead")) {
-                    // Проверка ранга (раньше её тут не было!)
                     if (data.getMageRank() < spellLevel) {
                         playerIn.displayClientMessage(new StringTextComponent("§cВаш ранг магии слишком низок! Требуется: " + spellLevel), true);
                         return;
@@ -154,22 +158,18 @@ public class SpellScrollItem extends Item {
 
                     int rank = data.getMageRank();
                     int archers = 0, warriors = 0, zombies = 0;
-
                     switch (rank) {
                         case 1: archers = 1; warriors = 1; break;
                         case 2: archers = 1; warriors = 1; zombies = 1; break;
                         case 3: archers = 2; warriors = 1; zombies = 1; break;
                         case 4: archers = 2; warriors = 2; zombies = 1; break;
                         case 5: archers = 2; warriors = 2; zombies = 1; break;
-                        default: archers = 1; break; // На 0 ранге хотя бы 1 лучник
+                        default: archers = 1; break;
                     }
 
                     int spawned = 0;
                     Random rand = playerIn.getRandom();
                     long summonTime = worldIn.getGameTime();
-
-                    // Отладка
-                    playerIn.displayClientMessage(new StringTextComponent("§7[DEBUG] Rage=" + rank + ", A=" + archers + ", W=" + warriors + ", Z=" + zombies), false);
 
                     for (int i = 0; i < archers; i++) {
                         SummonedSkeletonArcher s = new SummonedSkeletonArcher(ModEntities.SUMMONED_SKELETON_ARCHER.get(), worldIn);
@@ -179,7 +179,6 @@ public class SpellScrollItem extends Item {
                         s.getPersistentData().putLong("SummonTime", summonTime);
                         if (worldIn.addFreshEntity(s)) spawned++;
                     }
-
                     for (int i = 0; i < warriors; i++) {
                         SummonedSkeletonWarrior s = new SummonedSkeletonWarrior(ModEntities.SUMMONED_SKELETON_WARRIOR.get(), worldIn);
                         s.setPos(playerIn.getX() + (rand.nextFloat() - 0.5f) * 6, playerIn.getY(), playerIn.getZ() + (rand.nextFloat() - 0.5f) * 6);
@@ -194,7 +193,6 @@ public class SpellScrollItem extends Item {
                         }
                         if (worldIn.addFreshEntity(s)) spawned++;
                     }
-
                     for (int i = 0; i < zombies; i++) {
                         SummonedZombie z = new SummonedZombie(ModEntities.SUMMONED_ZOMBIE.get(), worldIn);
                         z.setPos(playerIn.getX() + (rand.nextFloat() - 0.5f) * 6, playerIn.getY(), playerIn.getZ() + (rand.nextFloat() - 0.5f) * 6);
@@ -217,11 +215,10 @@ public class SpellScrollItem extends Item {
                     return;
                 }
 
-                // Стандартные заклинания
                 data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + (spellLevel * 5));
 
-                playerIn.displayClientMessage(new StringTextComponent("§dВы использовали свиток: §e" + spell.getName() + " §7(Урон: " + (int) finalDamage + ", -" + manaCost + " маны)"), false);
+                playerIn.displayClientMessage(new StringTextComponent("§dВы использовали свиток: §e" + spell.getName() + " §7(Урон: " + (int)finalDamage + ", -" + manaCost + " маны)"), false);
 
                 if (spellId.equals("heal")) {
                     playerIn.heal(finalDamage);

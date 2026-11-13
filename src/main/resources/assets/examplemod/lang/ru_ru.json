@@ -79,5 +79,10 @@
   "block.examplemod.quest_board": "Доска Квестов",
   "entity.examplemod.summoned_skeleton_archer": "Скелет-лучник (призыв)",
   "entity.examplemod.summoned_skeleton_warrior": "Скелет-мечник (призыв)",
-  "entity.examplemod.summoned_zombie": "Зомби (призыв)"
+  "entity.examplemod.summoned_zombie": "Зомби (призыв)",
+  "item.examplemod.ring_of_strength": "Кольцо Силы",
+  "item.examplemod.ring_of_magic": "Кольцо Магии",
+  "item.examplemod.amulet_of_protection": "Амулет Защиты",
+  "item.examplemod.earring_of_dexterity": "Серьга Ловкости",
+  "item.examplemod.bracelet_of_swiftness": "Браслет Скорости"
 }

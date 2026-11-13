@@ -79,5 +79,10 @@
   "block.examplemod.quest_board": "Quest Board",
   "entity.examplemod.summoned_skeleton_archer": "Skeleton Archer (Summoned)",
   "entity.examplemod.summoned_skeleton_warrior": "Skeleton Warrior (Summoned)",
-  "entity.examplemod.summoned_zombie": "Zombie (Summoned)"
+  "entity.examplemod.summoned_zombie": "Zombie (Summoned)",
+  "item.examplemod.ring_of_strength": "Ring of Strength",
+  "item.examplemod.ring_of_magic": "Ring of Magic",
+  "item.examplemod.amulet_of_protection": "Amulet of Protection",
+  "item.examplemod.earring_of_dexterity": "Earring of Dexterity",
+  "item.examplemod.bracelet_of_swiftness": "Bracelet of Swiftness"
 }

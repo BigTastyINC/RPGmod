@@ -29,12 +29,16 @@ public class AcceptQuestPacket {
             ServerPlayerEntity player = ctx.get().getSender();
             if (player != null) {
                 player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+                    // Проверяем, нет ли уже такого квеста
                     boolean alreadyHas = data.getActiveQuests().stream()
                             .anyMatch(q -> q.getId().equals(msg.quest.getId()));
 
                     if (!alreadyHas) {
                         data.addQuest(msg.quest);
-                        // Здесь тоже используем append
+
+                        // НОВОЕ: Удаляем из доступных
+                        data.getAvailableQuests().removeIf(q -> q.getId().equals(msg.quest.getId()));
+
                         player.sendMessage(new StringTextComponent("§aКвест принят: §e").append(msg.quest.getDescription()), player.getUUID());
 
                         NetworkHandler.INSTANCE.send(

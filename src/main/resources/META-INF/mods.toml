@@ -18,7 +18,7 @@ authors="BigTastyINC"
 description='''Полноценный RPG мод с уровнями, характеристиками, магией, кастомными рудами, оружием, броней и торговцами!'''
 
 # ==========================================
-# Зависимости (не трогаем)
+# Зависимости
 # ==========================================
 
 [[dependencies.examplemod]]
@@ -33,6 +33,14 @@ modId="minecraft"
 mandatory=true
 versionRange="${minecraft_version_range}"
 ordering="NONE"
+side="BOTH"
+
+# ИСПРАВЛЕНО: Добавлен префикс 1.16.5-, чтобы Forge сравнивал версии корректно
+[[dependencies.examplemod]]
+modId="curios"
+mandatory=true
+versionRange="[1.16.5-4.0.0,)"
+ordering="AFTER"
 side="BOTH"
 
 # Мягкая зависимость от Tinkers' Construct

@@ -15,7 +15,6 @@ public class NetworkHandler {
 
     public static void register() {
         int id = 0;
-        // Существующие пакеты
         INSTANCE.registerMessage(id++, SyncLevelPacket.class, SyncLevelPacket::encode, SyncLevelPacket::decode, SyncLevelPacket::handle);
         INSTANCE.registerMessage(id++, OpenStatsGuiPacket.class, OpenStatsGuiPacket::encode, OpenStatsGuiPacket::decode, OpenStatsGuiPacket::handle);
         INSTANCE.registerMessage(id++, UpgradeStatPacket.class, UpgradeStatPacket::encode, UpgradeStatPacket::decode, UpgradeStatPacket::handle);
@@ -27,10 +26,10 @@ public class NetworkHandler {
         INSTANCE.registerMessage(id++, SyncOtherPlayerLevelPacket.class, SyncOtherPlayerLevelPacket::encode, SyncOtherPlayerLevelPacket::decode, SyncOtherPlayerLevelPacket::handle);
         INSTANCE.registerMessage(id++, CraftScrollPacket.class, CraftScrollPacket::encode, CraftScrollPacket::decode, CraftScrollPacket::handle);
         INSTANCE.registerMessage(id++, SelectStaffSpellPacket.class, SelectStaffSpellPacket::encode, SelectStaffSpellPacket::decode, SelectStaffSpellPacket::handle);
-
-        // НОВЫЕ ПАКЕТЫ ДЛЯ КВЕСТОВ
         INSTANCE.registerMessage(id++, OpenQuestBoardPacket.class, OpenQuestBoardPacket::encode, OpenQuestBoardPacket::decode, OpenQuestBoardPacket::handle);
         INSTANCE.registerMessage(id++, AcceptQuestPacket.class, AcceptQuestPacket::encode, AcceptQuestPacket::decode, AcceptQuestPacket::handle);
         INSTANCE.registerMessage(id++, CompleteQuestPacket.class, CompleteQuestPacket::encode, CompleteQuestPacket::decode, CompleteQuestPacket::handle);
+        // НОВОЕ
+        INSTANCE.registerMessage(id++, AbandonQuestPacket.class, AbandonQuestPacket::encode, AbandonQuestPacket::decode, AbandonQuestPacket::handle);
     }
 }

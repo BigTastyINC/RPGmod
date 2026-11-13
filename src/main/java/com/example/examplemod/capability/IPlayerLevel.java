@@ -15,21 +15,31 @@ public interface IPlayerLevel {
     int getVitality(); void setVitality(int value);
     int getHealthRegen(); void setHealthRegen(int value); int getManaRegen(); void setManaRegen(int value);
     int getStamina(); void setStamina(int stamina); int getStaminaRegen(); void setStaminaRegen(int value); int getStaminaRegenDelay(); void setStaminaRegenDelay(int delay);
-    default int getMaxStamina() { return 100 + (getStrength() - 1) * 3; }
+
+    int getStaminaBonus(); void setStaminaBonus(int bonus);
+    int getManaBonus(); void setManaBonus(int bonus);
+
+    int getMaxStamina();
     int getMana(); void setMana(int mana);
-    default int getMaxMana() { return 100 + (getIntelligence() - 1) * 10; }
+    int getMaxMana();
+
     int getCopper(); void setCopper(int copper); int getSilver(); void setSilver(int silver); int getGold(); void setGold(int gold); void addCoins(int copperAmount);
     void setBuff(int buffId, long endTime, float power); long getBuffEnd(int buffId); float getBuffPower(int buffId); boolean hasBuff(int buffId); void clearBuff(int buffId); CompoundNBT getAllBuffs();
     int getProfessionLevel(Profession p); int getProfessionXp(Profession p); void setProfessionLevel(Profession p, int level); void setProfessionXp(Profession p, int xp); boolean addProfessionXp(Profession p, int amount);
 
-    // МАГИЯ
     int getMageRank(); void setMageRank(int rank); int getMageXp(); void setMageXp(int xp); void addMageXp(int amount);
     Map<String, Integer> getKnownSpells(); void learnSpell(String spellId, int level); int getSpellLevel(String spellId);
 
-    // НОВОЕ: КВЕСТЫ
+    // КВЕСТЫ
     List<Quest> getActiveQuests();
     void addQuest(Quest quest);
     void removeQuest(Quest quest);
+
+    // НОВОЕ: Доступные квесты и время их генерации
+    List<Quest> getAvailableQuests();
+    void setAvailableQuests(List<Quest> quests);
+    long getQuestBoardRefreshTime();
+    void setQuestBoardRefreshTime(long time);
 
     CompoundNBT serializeNBT();
     void deserializeNBT(CompoundNBT nbt);

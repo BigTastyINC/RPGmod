@@ -52,10 +52,16 @@ minecraft {
 
 repositories {
     maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    // НОВОЕ: Репозиторий Curios
+    maven { url = "https://maven.theillusivec4.top/" }
 }
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
+
+    // НОВОЕ: Зависимости Curios API
+    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.5-4.0.8.2:api")
+    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:1.16.5-4.0.8.2")
 }
 
 jar {

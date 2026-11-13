@@ -34,19 +34,18 @@ public class XpEventHandler {
         final int finalMobLevel = mobLevel;
         final MobRarity finalRarity = rarity;
 
-        // Базовый опыт и монеты умножаются на редкость
-        final int baseXpReward = (int) (finalMobLevel * 10 * finalRarity.getXpMultiplier());
-        final int baseCoinReward = (int) (finalMobLevel * 2 * finalRarity.getXpMultiplier());
-
         player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+            int baseXpReward = (int) (finalMobLevel * 10 * finalRarity.getXpMultiplier());
+
+            // НОВОЕ: Удача умножает монеты
+            float luckMultiplier = 1.0f + (data.getLuck() * 0.01f);
+            int baseCoinReward = (int) (finalMobLevel * 2 * finalRarity.getXpMultiplier() * luckMultiplier);
+
             int actualXp = baseXpReward;
             if (data.hasBuff(RpgBuffs.XP_BOOST)) {
                 long end = data.getBuffEnd(RpgBuffs.XP_BOOST);
-                if (player.level.getGameTime() < end) {
-                    actualXp = (int) (actualXp * (1.0f + data.getBuffPower(RpgBuffs.XP_BOOST)));
-                } else {
-                    data.clearBuff(RpgBuffs.XP_BOOST);
-                }
+                if (player.level.getGameTime() < end) actualXp = (int) (actualXp * (1.0f + data.getBuffPower(RpgBuffs.XP_BOOST)));
+                else data.clearBuff(RpgBuffs.XP_BOOST);
             }
 
             data.addXp(actualXp);

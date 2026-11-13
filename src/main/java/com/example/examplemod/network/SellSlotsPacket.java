@@ -33,14 +33,17 @@ public class SellSlotsPacket {
                 for (int i = 0; i < 10; i++) {
                     ItemStack stack = container.getSlot(i).getItem();
 
-                    // Проверяем: предмет не пустой и имеет NBT редкость или уровень
+                    // НОВОЕ: принимаем тома, реликвии, а также предметы с редкостью/уровнем
                     if (!stack.isEmpty() && stack.hasTag()) {
                         CompoundNBT nbt = stack.getTag();
-                        if (nbt.contains("ItemLevel") || nbt.contains("RarityLevel")) {
+                        if (nbt.contains("ItemLevel")
+                                || nbt.contains("RarityLevel")
+                                || nbt.contains("SpellId")
+                                || nbt.contains("RelicBasePrice")) {
                             int price = ShopUtils.calcSellPrice(stack) * stack.getCount();
                             totalPrice += price;
                             itemsSold += stack.getCount();
-                            container.getSlot(i).set(ItemStack.EMPTY); // Очищаем слот
+                            container.getSlot(i).set(ItemStack.EMPTY);
                         }
                     }
                 }

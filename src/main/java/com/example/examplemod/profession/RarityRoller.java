@@ -3,11 +3,7 @@ package com.example.examplemod.profession;
 import com.example.examplemod.item.Rarity;
 import java.util.Random;
 
-/**
- * Определяет редкость по уровню профессии.
- * Таблица: {Common, Uncommon, Rare, Epic, Legendary} в процентах, сумма = 100.
- */
-public final class RarityRoller {
+public class RarityRoller {
 
     private static final Random RNG = new Random();
     private static final int[][] CHANCES = new int[101][5];
@@ -35,8 +31,11 @@ public final class RarityRoller {
         }
     }
 
-    public static Rarity roll(int professionLevel) {
-        int lvl = Math.max(1, Math.min(100, professionLevel));
+    public static Rarity roll(int professionLevel, int luck) {
+        // ИЗМЕНЕНО: Удача теперь делится на 20 (было 2), влияние уменьшено в 10 раз
+        int effectiveLevel = professionLevel + (luck / 20);
+        int lvl = Math.max(1, Math.min(100, effectiveLevel));
+
         int[] w = CHANCES[lvl];
         int r = RNG.nextInt(100);
         int acc = 0;

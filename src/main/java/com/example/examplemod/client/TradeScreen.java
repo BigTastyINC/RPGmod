@@ -80,12 +80,10 @@ public class TradeScreen extends ContainerScreen<TradeContainer> {
             drawCenteredString(ms, this.font, "§eУр." + level, bx + 40, top + 15, 0xFFFFFF);
             drawCenteredString(ms, this.font, r.getColor() + r.getName(), bx + 40, top + 25, 0xFFFFFF);
 
-            // НОВОЕ: Вывод баффа с учетом уровня
             if (preview.getItem().isEdible()) {
                 int buffId = RpgBuffs.getBuffForFood(preview.getItem());
                 String buffName = RpgBuffs.NAMES[buffId];
 
-                // Считаем бонусные минуты
                 int bonusMinutes = level / 40;
                 int totalDuration = RpgBuffs.DURATION_MINUTES[rarity] + bonusMinutes;
 
@@ -113,8 +111,15 @@ public class TradeScreen extends ContainerScreen<TradeContainer> {
         int totalSellPrice = 0;
         for (int i = 0; i < 10; i++) {
             ItemStack stack = this.menu.getSlot(i).getItem();
-            if (!stack.isEmpty() && stack.hasTag() && stack.getTag().contains("ItemLevel")) {
-                totalSellPrice += ShopUtils.calcSellPrice(stack) * stack.getCount();
+            // НОВОЕ: считаем и тома, и реликвии
+            if (!stack.isEmpty() && stack.hasTag()) {
+                CompoundNBT nbt = stack.getTag();
+                if (nbt.contains("ItemLevel")
+                        || nbt.contains("RarityLevel")
+                        || nbt.contains("SpellId")
+                        || nbt.contains("RelicBasePrice")) {
+                    totalSellPrice += ShopUtils.calcSellPrice(stack) * stack.getCount();
+                }
             }
         }
 

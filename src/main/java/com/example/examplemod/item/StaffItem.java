@@ -88,11 +88,17 @@ public class StaffItem extends Item {
 
             int manaCost = spell.getManaCost(data.getMageRank());
 
+            // MANA_SAVING: -10% затрат маны
+            if (ItemStatHelper.hasAffix(stack, ItemAffix.MANA_SAVING)) {
+                manaCost = (int)(manaCost * 0.9f);
+            }
+
             if (data.getMana() < manaCost) {
                 playerIn.displayClientMessage(new StringTextComponent("§cНедостаточно маны! Требуется: " + manaCost), true);
                 return;
             }
 
+            boolean freeCast = ItemStatHelper.hasAffix(stack, ItemAffix.DOUBLE_CAST) && playerIn.getRandom().nextFloat() < 0.05f;
             Vector3d look = playerIn.getLookAngle();
 
             if (spellId.equals("teleport_ore")) {
@@ -102,7 +108,7 @@ public class StaffItem extends Item {
                     return;
                 }
 
-                data.setMana(data.getMana() - manaCost);
+                if (!freeCast) data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + knownLevel * 5);
 
                 int count = 0;
@@ -117,7 +123,7 @@ public class StaffItem extends Item {
                 playerIn.displayClientMessage(new StringTextComponent("§bВы притянули §e" + count + " §bблоков руды!"), true);
                 worldIn.playSound(null, playerIn.getX(), playerIn.getY(), playerIn.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
             } else if (spellId.equals("craft_relic")) {
-                data.setMana(data.getMana() - manaCost);
+                if (!freeCast) data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + knownLevel * 5);
 
                 ItemStack relic = new ItemStack(Items.DIAMOND);
@@ -133,7 +139,7 @@ public class StaffItem extends Item {
                 playerIn.displayClientMessage(new StringTextComponent("§aВы создали реликвию!"), true);
                 worldIn.playSound(null, playerIn.getX(), playerIn.getY(), playerIn.getZ(), SoundEvents.ANVIL_USE, SoundCategory.PLAYERS, 1.0f, 1.0f);
             } else if (spellId.equals("summon_merchant")) {
-                data.setMana(data.getMana() - manaCost);
+                if (!freeCast) data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + knownLevel * 5);
 
                 VillagerEntity npc = new VillagerEntity(net.minecraft.entity.EntityType.VILLAGER, worldIn);
@@ -148,37 +154,31 @@ public class StaffItem extends Item {
 
                 playerIn.displayClientMessage(new StringTextComponent("§aПризван Торговец-Маг! §7(Исчезнет через 5 минут)"), true);
                 worldIn.playSound(null, playerIn.getX(), playerIn.getY(), playerIn.getZ(), SoundEvents.EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1.0f, 1.0f);
-            }
-            // Призыв нежити
-            else if (spellId.equals("summon_undead")) {
+            } else if (spellId.equals("summon_undead")) {
                 float requiredHp = playerIn.getMaxHealth() * 0.3f;
                 if (playerIn.getHealth() < requiredHp) {
                     playerIn.displayClientMessage(new StringTextComponent("§cНедостаточно здоровья! Требуется: " + (int) requiredHp), true);
                     return;
                 }
 
-                data.setMana(data.getMana() - manaCost);
+                if (!freeCast) data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + knownLevel * 5);
                 playerIn.setHealth(playerIn.getHealth() - requiredHp);
 
                 int rank = data.getMageRank();
                 int archers = 0, warriors = 0, zombies = 0;
-
                 switch (rank) {
                     case 1: archers = 1; warriors = 1; break;
                     case 2: archers = 1; warriors = 1; zombies = 1; break;
                     case 3: archers = 2; warriors = 1; zombies = 1; break;
                     case 4: archers = 2; warriors = 2; zombies = 1; break;
                     case 5: archers = 2; warriors = 2; zombies = 1; break;
-                    default: archers = 1; break; // На 0 ранге хотя бы 1 лучник
+                    default: archers = 1; break;
                 }
 
                 int spawned = 0;
                 Random rand = playerIn.getRandom();
                 long summonTime = worldIn.getGameTime();
-
-                // Отладка
-                playerIn.displayClientMessage(new StringTextComponent("§7[DEBUG] Rage=" + rank + ", A=" + archers + ", W=" + warriors + ", Z=" + zombies), false);
 
                 for (int i = 0; i < archers; i++) {
                     SummonedSkeletonArcher s = new SummonedSkeletonArcher(ModEntities.SUMMONED_SKELETON_ARCHER.get(), worldIn);
@@ -188,7 +188,6 @@ public class StaffItem extends Item {
                     s.getPersistentData().putLong("SummonTime", summonTime);
                     if (worldIn.addFreshEntity(s)) spawned++;
                 }
-
                 for (int i = 0; i < warriors; i++) {
                     SummonedSkeletonWarrior s = new SummonedSkeletonWarrior(ModEntities.SUMMONED_SKELETON_WARRIOR.get(), worldIn);
                     s.setPos(playerIn.getX() + (rand.nextFloat() - 0.5f) * 6, playerIn.getY(), playerIn.getZ() + (rand.nextFloat() - 0.5f) * 6);
@@ -203,7 +202,6 @@ public class StaffItem extends Item {
                     }
                     if (worldIn.addFreshEntity(s)) spawned++;
                 }
-
                 for (int i = 0; i < zombies; i++) {
                     SummonedZombie z = new SummonedZombie(ModEntities.SUMMONED_ZOMBIE.get(), worldIn);
                     z.setPos(playerIn.getX() + (rand.nextFloat() - 0.5f) * 6, playerIn.getY(), playerIn.getZ() + (rand.nextFloat() - 0.5f) * 6);
@@ -225,7 +223,11 @@ public class StaffItem extends Item {
                 int rarityIndex = Math.min(4, data.getMageRank());
                 float finalDamage = spell.getDamage(knownLevel, rarityIndex) * damageMultiplier;
 
-                data.setMana(data.getMana() - manaCost);
+                if (ItemStatHelper.hasAffix(stack, ItemAffix.SPELL_POWER)) {
+                    finalDamage *= 1.15f;
+                }
+
+                if (!freeCast) data.setMana(data.getMana() - manaCost);
                 data.addMageXp(10 + knownLevel * 5);
 
                 if (spellId.equals("heal")) {
@@ -241,7 +243,8 @@ public class StaffItem extends Item {
                 worldIn.playSound(null, playerIn.getX(), playerIn.getY(), playerIn.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
                 String mult = damageMultiplier > 1.0f ? " §7(x" + damageMultiplier + ")" : "";
-                playerIn.displayClientMessage(new StringTextComponent("§d" + spell.getName() + mult + " §7(-" + manaCost + " маны)"), true);
+                String freeCastMsg = freeCast ? " §a(бесплатно!)" : "";
+                playerIn.displayClientMessage(new StringTextComponent("§d" + spell.getName() + mult + " §7(-" + manaCost + " маны)" + freeCastMsg), true);
             }
 
             if (!playerIn.abilities.instabuild) {

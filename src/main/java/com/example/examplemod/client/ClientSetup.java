@@ -1,5 +1,6 @@
 package com.example.examplemod.client;
 
+import com.example.examplemod.block.ModTileEntities;
 import com.example.examplemod.container.ModContainers;
 import com.example.examplemod.entity.ModEntities;
 import net.minecraft.client.Minecraft;
@@ -24,13 +25,14 @@ public class ClientSetup {
 
         RenderingRegistry.registerEntityRenderingHandler(ModEntities.RPG_FIREBALL.get(),
                 manager -> new SpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
-
         RenderingRegistry.registerEntityRenderingHandler(ModEntities.RPG_FROSTBOLT.get(),
                 manager -> new SpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 
-        // НОВОЕ: Рендереры призывов
         RenderingRegistry.registerEntityRenderingHandler(ModEntities.SUMMONED_SKELETON_ARCHER.get(), SkeletonRenderer::new);
         RenderingRegistry.registerEntityRenderingHandler(ModEntities.SUMMONED_SKELETON_WARRIOR.get(), SkeletonRenderer::new);
         RenderingRegistry.registerEntityRenderingHandler(ModEntities.SUMMONED_ZOMBIE.get(), ZombieRenderer::new);
+
+        // НОВОЕ: Регистрация рендерера для Доски Квестов
+        ClientRegistry.bindTileEntityRenderer(ModTileEntities.QUEST_BOARD.get(), QuestBoardTileEntityRenderer::new);
     }
 }
