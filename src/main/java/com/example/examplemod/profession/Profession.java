@@ -1,11 +1,12 @@
 package com.example.examplemod.profession;
 
 public enum Profession {
-    WEAPONSMITH("weaponsmith", "Оружейник", 3, 100),
-    ARMORSMITH("armorsmith", "Бронник", 3, 100),
+    SMITH("smith", "Кузнец", 3, 100),
     ALCHEMIST("alchemist", "Алхимик", 3, 100),
-    FISHERMAN("fisherman", "Рыбак", 1, 9999), // Безлимит
-    MINER("miner", "Рудокоп", 1, 100);
+    FISHERMAN("fisherman", "Рыбак", 1, 9999),
+    MINER("miner", "Рудокоп", 1, 100),
+    GARDENER("gardener", "Фермер", 1, 100),
+    HUNTER("hunter", "Охотник", 1, 100);
 
     private final String id;
     private final String displayName;
@@ -26,6 +27,6 @@ public enum Profession {
 
     public static Profession byId(String id) {
         for (Profession p : values()) if (p.id.equals(id)) return p;
-        return WEAPONSMITH;
+        return SMITH;
     }
 }

@@ -129,7 +129,7 @@ public class PlayerEventHandler {
                             "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
                     ), false);
                 }
-                player.containerMenu.broadcastChanges(); // <--- СИНХРОНИЗАЦИЯ ИНВЕНТАРЯ
+                player.containerMenu.broadcastChanges();
                 syncData(player, data);
                 return;
             }
@@ -160,7 +160,7 @@ public class PlayerEventHandler {
                             "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
                     ), false);
                 }
-                player.containerMenu.broadcastChanges(); // <--- СИНХРОНИЗАЦИЯ ИНВЕНТАРЯ
+                player.containerMenu.broadcastChanges();
                 syncData(player, data);
                 return;
             }
@@ -186,14 +186,14 @@ public class PlayerEventHandler {
                             "§6⬆ Профессия повышена: §eАлхимик §7→ §e" + profLevel
                     ), false);
                 }
-                player.containerMenu.broadcastChanges(); // <--- СИНХРОНИЗАЦИЯ ИНВЕНТАРЯ
+                player.containerMenu.broadcastChanges();
                 syncData(player, data);
                 return;
             }
 
-            // === ОРУЖИЕ И БРОНЯ ===
+            // === ОРУЖИЕ И БРОНЯ (КУЗНЕЦ) ===
             boolean isWeapon = ItemStatHelper.isWeapon(craftedItem);
-            Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
+            Profession prof = Profession.SMITH; // ИЗМЕНЕНО
             int xpGain = getProfessionXpWithBonus(player, data, isWeapon ? 100 : 50);
             boolean leveledUp = data.addProfessionXp(prof, xpGain);
             int profLevel = data.getProfessionLevel(prof);
@@ -214,7 +214,7 @@ public class PlayerEventHandler {
                         "§6⬆ Профессия повышена: §e" + prof.getDisplayName() + " §7→ §e" + profLevel
                 ), false);
             }
-            player.containerMenu.broadcastChanges(); // <--- СИНХРОНИЗАЦИЯ ИНВЕНТАРЯ
+            player.containerMenu.broadcastChanges();
             syncData(player, data);
         });
     }
@@ -335,9 +335,7 @@ public class PlayerEventHandler {
             }
 
             if (ItemStatHelper.isGear(stack) && (!stack.hasTag() || !stack.getTag().contains("ItemLevel"))) {
-                boolean isWeapon = ItemStatHelper.isWeapon(stack);
-                Profession prof = isWeapon ? Profession.WEAPONSMITH : Profession.ARMORSMITH;
-                ItemStatHelper.generateStatsWithRarity(stack, Math.max(1, data.getLevel()), RarityRoller.roll(data.getProfessionLevel(prof), data.getLuck()));
+                ItemStatHelper.generateStatsWithRarity(stack, Math.max(1, data.getLevel()), RarityRoller.roll(data.getProfessionLevel(Profession.SMITH), data.getLuck())); // ИЗМЕНЕНО
                 modified = true;
             }
 

@@ -7,7 +7,6 @@ import java.util.Random;
 public class QuestGenerator {
     private static final Random RANDOM = new Random();
 
-    // НОВОЕ: Расширенные пулы
     private static final String[] Mobs = {
             "minecraft:zombie", "minecraft:skeleton", "minecraft:spider", "minecraft:creeper",
             "minecraft:enderman", "minecraft:witch", "minecraft:slime", "minecraft:husk",
@@ -17,13 +16,21 @@ public class QuestGenerator {
             "minecraft:zombie", "minecraft:skeleton", "minecraft:spider", "minecraft:enderman",
             "minecraft:witch", "minecraft:pillager", "minecraft:vindicator", "minecraft:ravager"
     };
+
+    // ИЗМЕНЕНО: Убраны слитки. Оставлены только те предметы, которым наш мод выдает редкость (RarityLevel).
     private static final String[] DeliverItems = {
+            // Еда (получает редкость через FoodBuffHandler)
             "minecraft:cooked_beef", "minecraft:cooked_porkchop", "minecraft:cooked_chicken",
-            "minecraft:cooked_mutton", "minecraft:cooked_rabbit",
+            "minecraft:cooked_mutton", "minecraft:cooked_rabbit", "minecraft:baked_potato",
+
+            // Кристаллы (получают редкость через MobDropHandler)
             "examplemod:small_magic_crystal", "examplemod:medium_magic_crystal", "examplemod:large_magic_crystal",
+
+            // Зелья (получают редкость через ItemStatHelper)
             "examplemod:mana_potion", "examplemod:health_potion",
-            "examplemod:silver_ingot", "examplemod:cobalt_ingot", "examplemod:mithril_ingot",
-            "examplemod:adamantium_ingot", "examplemod:orichalcum_ingot"
+
+            // Свитки (получают редкость при крафте)
+            "examplemod:spell_scroll"
     };
 
     public static List<Quest> generateDailyQuests(int playerLevel) {
@@ -54,7 +61,7 @@ public class QuestGenerator {
                 case 2: // Принести предмет
                     String item = DeliverItems[RANDOM.nextInt(DeliverItems.length)];
                     int itemAmount = 3 + RANDOM.nextInt(8);
-                    int minRarity = RANDOM.nextInt(3); // 0-2
+                    int minRarity = RANDOM.nextInt(3); // 0-2 (Обычный, Необычный, Редкий)
                     quests.add(new Quest(Quest.Type.DELIVER_ITEM, item, 1, minRarity, itemAmount, 1000 + playerLevel * 15, 100 + playerLevel * 5));
                     break;
             }

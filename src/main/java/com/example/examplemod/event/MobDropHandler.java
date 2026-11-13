@@ -4,6 +4,7 @@ import com.example.examplemod.capability.ModCapabilities;
 import com.example.examplemod.entity.MobRarity;
 import com.example.examplemod.item.ModItems;
 import com.example.examplemod.item.Rarity;
+import com.example.examplemod.profession.Profession;
 import com.example.examplemod.profession.RarityRoller;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.item.ItemEntity;
@@ -31,9 +32,12 @@ public class MobDropHandler {
         MobEntity mob = (MobEntity) event.getEntityLiving();
 
         final int[] luck = {0};
-        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> luck[0] = data.getLuck());
+        final int[] hunterLvl = {0};
+        player.getCapability(ModCapabilities.PLAYER_LEVEL).ifPresent(data -> {
+            luck[0] = data.getLuck();
+            hunterLvl[0] = data.getProfessionLevel(Profession.HUNTER);
+        });
 
-        // ИЗМЕНЕНО: Теперь 1 удача дает +0.01% (было 0.1%), влияние уменьшено в 10 раз
         float luckBonus = luck[0] * 0.0001f;
 
         int rarityIndex = mob.getPersistentData().getInt("RpgMobRarity");
@@ -129,12 +133,21 @@ public class MobDropHandler {
                 if (stack.getItem().isEdible()) {
                     CompoundNBT nbt = stack.getOrCreateTag();
                     nbt.putInt("ItemLevel", mobLevel);
+
+                    // Базовый шанс понижения редкости
                     int meatRarityIndex = 0;
                     int roll = RANDOM.nextInt(100);
                     if (mobRarity == MobRarity.UNCOMMON) meatRarityIndex = (roll < 90) ? 1 : 0;
                     else if (mobRarity == MobRarity.RARE) meatRarityIndex = (roll < 90) ? 2 : 1;
                     else if (mobRarity == MobRarity.EPIC) meatRarityIndex = (roll < 90) ? 3 : 2;
                     else if (mobRarity == MobRarity.LEGENDARY) meatRarityIndex = (roll < 40) ? 4 : 3;
+
+                    // Шанс ПОВЫСИТЬ редкость за счет уровня Охотника и Удачи
+                    float upgradeChance = (hunterLvl[0] * 0.005f) + (luck[0] * 0.001f);
+                    if (RANDOM.nextFloat() < upgradeChance && meatRarityIndex < 4) {
+                        meatRarityIndex++;
+                    }
+
                     nbt.putInt("RarityLevel", meatRarityIndex);
                 }
             }
